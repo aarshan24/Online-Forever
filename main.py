@@ -28,8 +28,8 @@ discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
 def onliner(token, status):
-    ws = websocket.WebSocketApp("wss://gateway.discord.gg/?v=9&encoding=json")  # Correct way to create WebSocket
-    ws.run_forever()  # Run the WebSocket connection indefinitely
+    ws = websocket.WebSocket("wss://gateway.discord.gg/?v=9&encoding=json")  # Use WebSocket instead of WebSocketApp
+    ws.run_forever() 
 
 def run_onliner():
     print(f"Logged in as {username}#{discriminator} ({userid}).")
