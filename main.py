@@ -10,19 +10,19 @@ status = "online" #online/dnd/idle
 
 custom_status = "youtube.com/@SealedSaucer" #If you don't need a custom status on your profile, just put "" instead of "youtube.com/@SealedSaucer"
 
-usertoken = "MTE5MzE5MzYwMjU2Njg2MDg3MA.Gv_OkM.iVNChFZomHZ-RH31E8FsQF5EX5slqwN5rj2o1M"
-if not usertoken:
+token = os.environ.get('token')
+if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
-headers = {"Authorization": usertoken, "Content-Type": "application/json"}
+headers = {"Authorization": token, "Content-Type": "application/json"}
 
 validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
 if validate.status_code != 200:
     print("[ERROR] Your token might be invalid. Please check it again.")
     sys.exit()
 
-userinfo = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers).json()
+userinfo = validate.json()
 username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
@@ -78,7 +78,7 @@ def run_onliner():
     os.system("clear")
     print(f"Logged in as {username}#{discriminator} ({userid}).")
     while True:
-        onliner(usertoken, status)
+        onliner(token, status)
         time.sleep(30)
 
 keep_alive()
