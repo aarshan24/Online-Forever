@@ -8,7 +8,7 @@ from keep_alive import keep_alive
 
 status = "online" #online/dnd/idle
 
-custom_status = "youtube.com/@SealedSaucer" #If you don't need a custom status on your profile, just put "" instead of "youtube.com/@SealedSaucer"
+custom_status = "discord.gg/permfruits" #If you don't need a custom status on your profile, just put "" instead of "youtube.com/@SealedSaucer"
 
 token = os.environ.get('token')
 if not token:
