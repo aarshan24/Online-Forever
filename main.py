@@ -76,15 +76,12 @@ def on_open(ws):
 
 def onliner(token, status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocket(ws_url,
-                                 on_message=on_message,
-                                 on_error=on_error,
-                                 on_close=on_close)
-    ws.on_open = on_open  # Set on_open callback separately
-
-    ws_thread = threading.Thread(target=ws.run_forever)
-    ws_thread.daemon = True
-    ws_thread.start()  # Start the WebSocket connection in a separate thread
+    ws = websocket.WebSocket()
+    ws.on_open = on_open
+    ws.on_message = on_message  # Handle incoming messages
+    ws.on_error = on_error
+    ws.on_close = on_close
+    ws.connect(ws_url)  # Connect to WebSocket
 
 def run_onliner():
     print(f"Logged in as {username}#{discriminator} ({userid}).")
