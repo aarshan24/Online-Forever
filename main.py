@@ -3,6 +3,7 @@ import sys
 import json
 import time
 import requests
+import threading
 import websocket
 from keep_alive import keep_alive
 
@@ -78,10 +79,12 @@ def onliner(token, status):
     ws = websocket.WebSocket(ws_url,
                                  on_message=on_message,
                                  on_error=on_error,
-                                 on_close=on_close,
-                                 on_open=on_open)
+                                 on_close=on_close)
+    ws.on_open = on_open  # Set on_open callback separately
 
-    ws.run_forever()  # Run the WebSocket connection indefinitely
+    ws_thread = threading.Thread(target=ws.run_forever)
+    ws_thread.daemon = True
+    ws_thread.start()  # Start the WebSocket connection in a separate thread
 
 def run_onliner():
     print(f"Logged in as {username}#{discriminator} ({userid}).")
