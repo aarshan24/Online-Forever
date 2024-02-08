@@ -10,7 +10,7 @@ status = "online" #online/dnd/idle
 
 custom_status = "youtube.com/@SealedSaucer" #If you don't need a custom status on your profile, just put "" instead of "youtube.com/@SealedSaucer"
 
-usertoken = os.getenv("TOKEN")
+usertoken = "MTE5MzE5MzYwMjU2Njg2MDg3MA.Gv_OkM.iVNChFZomHZ-RH31E8FsQF5EX5slqwN5rj2o1M"
 if not usertoken:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
