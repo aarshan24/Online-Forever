@@ -75,7 +75,7 @@ def on_open(ws):
 
 def onliner(token, status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url,
+    ws = websocket.WebSocket(ws_url,
                                  on_message=on_message,
                                  on_error=on_error,
                                  on_close=on_close,
