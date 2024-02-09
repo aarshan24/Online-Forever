@@ -29,16 +29,20 @@ discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
 def on_message(ws, message):
-    print("Received:", message)
+    data = json.loads(message)
+    if 'd' in data:
+        presence_data = data['d']
+        if 'status' in presence_data:
+            print("Account status:", presence_data['status'])
 
 def on_error(ws, error):
-    print("Error:", error)
+    pass
 
 def on_close(ws):
-    print("WebSocket connection closed")
+    pass
 
 def on_open(ws):
-    print("WebSocket connection opened")
+    pass
 
     auth_payload = {
         "op": 2,
