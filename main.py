@@ -1,7 +1,9 @@
 import os
 import sys
 import json
+import time
 import requests
+import threading
 import websocket
 from keep_alive import keep_alive
 
@@ -42,18 +44,7 @@ def set_status(status, custom_status=None):
         print("Failed to update status. Status code:", response.status_code)
 
 def on_message(ws, message):
-    print("Received message:", message)
-    msg_data = json.loads(message)
-    if msg_data.get("t") == "MESSAGE_CREATE":
-        message_content = msg_data["d"]["content"]
-        channel_id = msg_data["d"]["channel_id"]
-        if channel_id == "1204989685852676106":  # Replace this with your actual DM channel ID
-            if "welcome to" in message_content.lower():
-                print("Received 'welcome to' message. Changing status to 'discord.gg/permfruits'")
-                set_status(status, custom_status)
-            else:
-                print("No 'welcome to' message found. Changing status to 'bro what'")
-                set_status(status, "bro what")
+    print("Received:", message)
 
 def on_error(ws, error):
     print("Error:", error)
@@ -79,12 +70,36 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
+    cstatus_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": custom_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
+    }
+
+    ws.send(json.dumps(cstatus_payload))
+
+def onliner(token, status):
+    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
+    ws.run_forever()
+
 def run_onliner():
     print(f"Logged in as {username}#{discriminator} ({userid}).")
     while True:
-        ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-        ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-        ws.run_forever()
+        set_status(status, custom_status)
+        onliner(token, status)
+        time.sleep(30)
 
 keep_alive()
 run_onliner()
