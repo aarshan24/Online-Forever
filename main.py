@@ -10,7 +10,6 @@ from keep_alive import keep_alive
 status = "online"  # online/dnd/idle
 
 custom_status = "discord.gg/permfruits"  # Custom status
-alternate_status = "bro what"
 
 token = os.getenv('TOKEN')
 if not token:
@@ -36,54 +35,44 @@ def on_error(ws, error):
     print("Error:", error)
 
 def on_close(ws):
-    print("WebSocket connection closed unexpectedly. Reconnecting...")
-    # Exponential backoff and retry logic
-    retry_delay = 1
-    while True:
-        time.sleep(retry_delay)
-        print("Attempting to reconnect...")
-        try:
-            onliner(token, status)
-            print("Reconnection successful")
-            return
-        except Exception as e:
-            print(f"Reconnection failed: {e}")
-            # Increase retry delay exponentially
-            retry_delay *= 2
-            if retry_delay > 60:
-                retry_delay = 60  # Cap maximum retry delay at 60 seconds
+    print("WebSocket connection closed")
 
 def on_open(ws):
     print("WebSocket connection opened")
 
-    def update_status():
-        while True:
-            # Send "bro what" status
-            cstatus_payload = {
-                "op": 3,
-                "d": {
-                    "since": 0,
-                    "activities": [
-                        {
-                            "type": 4,
-                            "state": alternate_status,
-                            "name": "Custom Status",
-                            "id": "custom",
-                        }
-                    ],
-                    "status": status,
-                    "afk": False,
-                },
-            }
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(1)
+    auth_payload = {
+        "op": 2,
+        "d": {
+            "token": token,
+            "properties": {
+                "$os": "Windows 10",
+                "$browser": "Google Chrome",
+                "$device": "Windows",
+            },
+            "presence": {"status": status, "afk": False},
+        }
+    }
 
-            # Send "discord.gg/permfruits" status
-            cstatus_payload["d"]["activities"][0]["state"] = custom_status
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(59)
+    ws.send(json.dumps(auth_payload))
 
-    threading.Thread(target=update_status, daemon=True).start()
+    cstatus_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": custom_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
+    }
+
+    ws.send(json.dumps(cstatus_payload))
 
 def onliner(token, status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
@@ -98,3 +87,4 @@ def run_onliner():
 
 keep_alive()
 run_onliner()
+
