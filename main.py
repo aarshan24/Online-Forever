@@ -44,6 +44,7 @@ def change_status(new_status):
     ws.close()
 
 def run_main():
+    print(f"Logged in as {username}#{discriminator} ({userid}).")
     while True:
         try:
             change_status("placeholder")  # Set status to "placeholder"
@@ -53,6 +54,7 @@ def run_main():
             time.sleep(59)  # Keep status as custom status for 59 seconds
         except Exception as e:
             print(f"An error occurred: {e}")
+
 
 if __name__ == "__main__":
     keep_alive()  # Start the Flask server
