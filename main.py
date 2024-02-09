@@ -37,4 +37,4 @@ async def check_dm():
     await check_dm()  # Run the check_dm coroutine directly
 
 # Run the bot
-asyncio.create_task(check_dm())
+asyncio.run(check_dm())
