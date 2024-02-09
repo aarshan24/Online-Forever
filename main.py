@@ -32,7 +32,7 @@ userid = userinfo["id"]
 
 async def check_bot_dm():
     # Channel ID of the DM channel with the bot
-    channel_id = 'YOUR_CHANNEL_ID'
+    channel_id = '1205105563743158312'
 
     # Create a Discord client
     client = discord.Client()
