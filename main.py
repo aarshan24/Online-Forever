@@ -12,7 +12,10 @@ if not token:
     sys.exit()
 
 async def check_dm():
-    client = discord.Client()
+    intents = discord.Intents.default()
+    intents.messages = True  # Enable message-related intents
+
+    client = discord.Client(intents=intents)
 
     @client.event
     async def on_ready():
