@@ -3,8 +3,8 @@ import json
 import time
 import websocket
 import requests
+import threading
 from keep_alive import pending_status
-
 
 status = "online"  # Default status
 custom_status = "discord.gg/permfruits"  # Custom status
@@ -46,7 +46,6 @@ def change_status(new_status):
 def run_main():
     global pending_status
     while True:
-        print("Pending status:", pending_status)  # Add this line
         if pending_status:
             change_status("bro what")
             time.sleep(1)  # Change status to "bro what" for a second
@@ -56,4 +55,5 @@ def run_main():
             change_status(custom_status)  # Set status to default
             time.sleep(10)  # Wait for 10 seconds before checking again
 
-run_main()
+# Start run_main in a separate thread
+threading.Thread(target=run_main).start()
