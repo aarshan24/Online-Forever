@@ -43,6 +43,25 @@ def set_status(status, custom_status=None):
     else:
         print("Failed to update status. Status code:", response.status_code)
 
+def check_dm():
+    dm_channel_id = "1204989685852676106"  # Replace this with your actual DM channel ID
+    dm_url = f"https://discord.com/api/v9/channels/{dm_channel_id}/messages?limit=1"
+    dm_response = requests.get(dm_url, headers=headers)
+    if dm_response.status_code == 200:
+        dm_data = dm_response.json()
+        if dm_data:
+            last_message = dm_data[0]["content"]
+            if "welcome to" in last_message.lower():
+                print("Received 'welcome to' message in DM. Changing status to 'discord.gg/permfruits'")
+                set_status(status, custom_status)
+            else:
+                print("No 'welcome to' message found in DM. Changing status to 'bro what'")
+                set_status(status, "bro what")
+        else:
+            print("No messages found in DM.")
+    else:
+        print("Failed to fetch DM messages. Status code:", dm_response.status_code)
+
 def on_message(ws, message):
     print("Received:", message)
 
@@ -97,6 +116,7 @@ def onliner(token, status):
 def run_onliner():
     print(f"Logged in as {username}#{discriminator} ({userid}).")
     while True:
+        check_dm()
         set_status(status, custom_status)
         onliner(token, status)
         time.sleep(30)
