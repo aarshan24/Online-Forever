@@ -37,7 +37,5 @@ async def check_dm():
         await asyncio.sleep(5)  # Wait for 5 seconds
         await client.close()  # Close the connection
 
-    await check_dm()  # Run the check_dm coroutine directly
-
 # Run the bot
 asyncio.run(check_dm())
