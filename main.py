@@ -13,7 +13,7 @@ if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
-headers = {"Authorization": f"Bot {token}", "Content-Type": "application/json"}
+headers = {"Authorization": token, "Content-Type": "application/json"}
 
 validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
 if validate.status_code != 200:
