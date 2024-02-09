@@ -1,13 +1,17 @@
 import os
+import sys
 import json
 import time
-import websocket
 import requests
-from keep_alive import keep_alive  # Import keep_alive module
+import threading
+import websocket
+from keep_alive import keep_alive
 
-# Global variables
-status = "online"  # Default status
+status = "online"  # online/dnd/idle
+
 custom_status = "discord.gg/permfruits"  # Custom status
+alternate_status = "bro what"
+
 token = os.getenv('TOKEN')
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
@@ -25,37 +29,57 @@ username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
-def change_status(new_status):
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.create_connection(ws_url)
-    auth_payload = {
-        "op": 2,
-        "d": {
-            "token": token,
-            "properties": {
-                "$os": "Windows 10",
-                "$browser": "Google Chrome",
-                "$device": "Windows",
-            },
-            "presence": {"status": new_status, "afk": False},
-        }
-    }
-    ws.send(json.dumps(auth_payload))
-    ws.close()
+def on_message(ws, message):
+    print("Received:", message)
 
-def run_main():
+def on_error(ws, error):
+    print("Error:", error)
+
+def on_close(ws):
+    print("WebSocket connection closed")
+
+def on_open(ws):
+    print("WebSocket connection opened")
+
+    def update_status():
+        while True:
+            # Send "bro what" status
+            cstatus_payload = {
+                "op": 3,
+                "d": {
+                    "since": 0,
+                    "activities": [
+                        {
+                            "type": 4,
+                            "state": alternate_status,
+                            "name": "Custom Status",
+                            "id": "custom",
+                        }
+                    ],
+                    "status": status,
+                    "afk": False,
+                },
+            }
+            ws.send(json.dumps(cstatus_payload))
+            time.sleep(1)
+
+            # Send "discord.gg/permfruits" status
+            cstatus_payload["d"]["activities"][0]["state"] = custom_status
+            ws.send(json.dumps(cstatus_payload))
+            time.sleep(59)
+
+    threading.Thread(target=update_status, daemon=True).start()
+
+def onliner(token, status):
+    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
+    ws.run_forever()
+
+def run_onliner():
     print(f"Logged in as {username}#{discriminator} ({userid}).")
     while True:
-        try:
-            change_status("placeholder")  # Set status to "placeholder"
-            time.sleep(1)  # Keep status as "placeholder" for one second
+        onliner(token, status)
+        time.sleep(30)
 
-            change_status(custom_status)  # Set status to custom status
-            time.sleep(59)  # Keep status as custom status for 59 seconds
-        except Exception as e:
-            print(f"An error occurred: {e}")
-
-
-if __name__ == "__main__":
-    keep_alive()  # Start the Flask server
-    run_main()  # Run the main function
+keep_alive()
+run_onliner()
