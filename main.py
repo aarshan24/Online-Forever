@@ -46,6 +46,7 @@ def change_status(new_status):
 def run_main():
     global pending_status
     while True:
+        print("Pending status:", pending_status)  # Add this line
         if pending_status:
             change_status("bro what")
             time.sleep(1)  # Change status to "bro what" for a second
