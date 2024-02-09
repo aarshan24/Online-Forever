@@ -32,10 +32,14 @@ userid = userinfo["id"]
 
 async def check_bot_dm():
     # Channel ID of the DM channel with the bot
-    channel_id = '1205105563743158312'
+    channel_id = 'YOUR_CHANNEL_ID'
 
-    # Create a Discord client
-    client = discord.Client()
+    # Define the intents for the bot
+    intents = discord.Intents.default()
+    intents.messages = True  # Enable receiving message events
+
+    # Create a Discord client with the specified intents
+    client = discord.Client(intents=intents)
 
     @client.event
     async def on_ready():
@@ -62,6 +66,7 @@ async def check_bot_dm():
                     pass
 
     await client.start(token)
+
 
 async def onliner():
     await check_bot_dm()
