@@ -56,11 +56,14 @@ def on_open(ws):
                 "$browser": "Google Chrome",
                 "$device": "Windows",
             },
-            "presence": {"status": status, "afk": False, "activities": [{"type": 4, "state": custom_status}]},
+            "presence": {"status": status, "afk": False},
         }
     }
 
     ws.send(json.dumps(auth_payload))
+
+    # Update status to custom status
+    update_status(custom_status)
 
 def update_status(new_status):
     cstatus_payload = {
