@@ -17,7 +17,7 @@ async def check_dm():
     @client.event
     async def on_ready():
         print(f'We have logged in as {client.user}')
-        dm_channel = client.get_channel(1205105563743158312)  # DM channel ID
+        dm_channel = client.get_channel(1204989685852676106)  # Correct DM channel ID
         if not dm_channel:
             print("DM channel not found.")
             await client.close()
