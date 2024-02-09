@@ -1,9 +1,7 @@
 import os
-import sys
 import json
 import time
 import requests
-import threading
 import websocket
 from keep_alive import keep_alive
 
@@ -60,8 +58,7 @@ def check_dm():
         if dm_data:
             last_message = dm_data[0]["content"]
             if "Welcome to Bloxtime Army" in last_message:
-                print("Received 'Welcome to Bloxtime Army' message in DM. Changing status to 'discord.gg/permfruits'")
-                set_status(status, custom_status)
+                print("Received 'Welcome to Bloxtime Army' message in DM.")
             else:
                 print("No 'Welcome to Bloxtime Army' message found in DM. Changing status to 'bro what'")
                 set_status(status, "bro what")
@@ -70,29 +67,12 @@ def check_dm():
     else:
         print("Failed to fetch DM messages. Status code:", dm_response.status_code)
 
-def on_message(ws, message):
-    print("Received:", message)
-
-def on_error(ws, error):
-    print("Error:", error)
-
-def on_close(ws):
-    print("WebSocket connection closed")
-
-def on_open(ws):
-    print("WebSocket connection opened")
-    set_status(status, custom_status)
-
-def onliner(token, status):
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-    ws.run_forever()
-
 def run_onliner():
+    print("Starting WebSocket connection...")
+    set_status(status, custom_status)
     while True:
-        onliner(token, status)
-        time.sleep(30)
+        check_dm()
+        time.sleep(120)
 
 keep_alive()
-threading.Thread(target=run_onliner).start()
-threading.Thread(target=check_dm).start()
+run_onliner()
