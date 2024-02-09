@@ -36,9 +36,22 @@ def on_error(ws, error):
     print("Error:", error)
 
 def on_close(ws):
-    print("WebSocket connection closed. Reconnecting...")
-    time.sleep(5)  # Wait for a few seconds before attempting to reconnect
-    onliner(token, status)
+    print("WebSocket connection closed unexpectedly. Reconnecting...")
+    # Exponential backoff and retry logic
+    retry_delay = 1
+    while True:
+        time.sleep(retry_delay)
+        print("Attempting to reconnect...")
+        try:
+            onliner(token, status)
+            print("Reconnection successful")
+            return
+        except Exception as e:
+            print(f"Reconnection failed: {e}")
+            # Increase retry delay exponentially
+            retry_delay *= 2
+            if retry_delay > 60:
+                retry_delay = 60  # Cap maximum retry delay at 60 seconds
 
 def on_open(ws):
     print("WebSocket connection opened")
