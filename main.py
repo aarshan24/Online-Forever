@@ -9,10 +9,7 @@ if not token:
     sys.exit()
 
 async def main():
-    intents = discord.Intents.default()
-    intents.messages = True  # Enable message-related intents
-
-    client = discord.Client(intents=intents)
+    client = discord.Client()
 
     @client.event
     async def on_ready():
