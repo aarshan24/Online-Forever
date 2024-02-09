@@ -36,7 +36,9 @@ def on_error(ws, error):
     print("Error:", error)
 
 def on_close(ws):
-    print("WebSocket connection closed")
+    print("WebSocket connection closed. Reconnecting...")
+    time.sleep(5)  # Wait for a few seconds before attempting to reconnect
+    onliner(token, status)
 
 def on_open(ws):
     print("WebSocket connection opened")
