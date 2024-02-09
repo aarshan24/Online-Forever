@@ -3,76 +3,60 @@ import json
 import time
 import requests
 import websocket
-from keep_alive import keep_alive
+from threading import Thread
 
-status = "online"  # online/dnd/idle
-custom_status = "discord.gg/permfruits"  # Custom status
+# Define the initial status and custom status
+status = "online"
+custom_status = "discord.gg/permfruits"
 token = os.getenv('TOKEN')
 
-if not token:
-    print("[ERROR] Please add a token inside Secrets.")
-    sys.exit()
+def send_200_request():
+    # Send a GET request to your external endpoint
+    response = requests.get("https://disconline12345.onrender.com/")
+    if response.status_code == 200:
+        print("200 OK request received.")
+        # Change the status to "bro what" for a second
+        set_status("bro what")
+        time.sleep(1)  # Wait for a second
+        # Change the status to "discord.gg/permfruits"
+        set_status("discord.gg/permfruits")
+        return True
+    else:
+        print("Failed to receive 200 OK request.")
+        return False
 
-headers = {"Authorization": token, "Content-Type": "application/json"}
-
-def set_status(status, custom_status):
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.create_connection(ws_url)
-    auth_payload = {
-        "op": 2,
-        "d": {
-            "token": token,
-            "properties": {
-                "$os": "Windows 10",
-                "$browser": "Google Chrome",
-                "$device": "Windows",
-            },
-            "presence": {"status": status, "afk": False},
-        }
-    }
-    ws.send(json.dumps(auth_payload))
-    cstatus_payload = {
+def set_status(new_custom_status):
+    global status, custom_status
+    # Update the custom status
+    custom_status = new_custom_status
+    # Implement the code to update the status via WebSocket connection or Discord API request
+    ws = websocket.WebSocket()
+    ws.connect("wss://gateway.discord.gg/?v=9&encoding=json")
+    payload = {
         "op": 3,
         "d": {
             "since": 0,
             "activities": [
                 {
                     "type": 4,
-                    "state": custom_status,
+                    "state": new_custom_status,
                     "name": "Custom Status",
                     "id": "custom",
                 }
             ],
             "status": status,
             "afk": False,
-        },
+        }
     }
-    ws.send(json.dumps(cstatus_payload))
+    ws.send(json.dumps(payload))
+    ws.close()
 
-def check_dm():
-    dm_channel_id = "1204989685852676106"  # Replace this with your actual DM channel ID
-    dm_url = f"https://discord.com/api/v9/channels/{dm_channel_id}/messages?limit=1"
-    dm_response = requests.get(dm_url, headers=headers)
-    if dm_response.status_code == 200:
-        dm_data = dm_response.json()
-        if dm_data:
-            last_message = dm_data[0]["content"]
-            if "Welcome to Bloxtime Army" in last_message:
-                print("Received 'Welcome to Bloxtime Army' message in DM.")
-            else:
-                print("No 'Welcome to Bloxtime Army' message found in DM. Changing status to 'bro what'")
-                set_status(status, "bro what")
-        else:
-            print("No messages found in DM.")
-    else:
-        print("Failed to fetch DM messages. Status code:", dm_response.status_code)
-
-def run_onliner():
-    print("Starting WebSocket connection...")
-    set_status(status, custom_status)
+# This function continuously sends the 200 OK requests
+def send_requests_continuously():
     while True:
-        check_dm()
-        time.sleep(120)
+        send_200_request()
+        time.sleep(2)  # Wait for 2 minutes before sending the next request
 
-keep_alive()
-run_onliner()
+# Run the function to continuously send requests in a separate thread
+request_thread = Thread(target=send_requests_continuously)
+request_thread.start()
