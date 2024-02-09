@@ -1,83 +1,56 @@
 import os
-import sys
-import json
-import time
-import requests
-import threading
-import discord
 import asyncio
-
-from keep_alive import keep_alive
+import discord
 
 status = "online"  # online/dnd/idle
-
 custom_status = "discord.gg/permfruits"  # Custom status
 
 token = os.getenv('TOKEN')
+channel_id = 1205105563743158312  # Channel ID of the bot's DM
+
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
-headers = {"Authorization": token, "Content-Type": "application/json"}
-
-validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
-if validate.status_code != 200:
-    print("[ERROR] Your token might be invalid. Please check it again.")
-    sys.exit()
-
-userinfo = validate.json()
-username = userinfo["username"]
-discriminator = userinfo["discriminator"]
-userid = userinfo["id"]
-
 async def check_bot_dm():
-    # Channel ID of the DM channel with the bot
-    channel_id = 'YOUR_CHANNEL_ID'
-
-    # Define the intents for the bot
-    intents = discord.Intents.default()
-    intents.messages = True  # Enable receiving message events
-
-    # Create a Discord client with the specified intents
-    client = discord.Client(intents=intents)
+    client = discord.Client(intents=discord.Intents.all())
 
     @client.event
     async def on_ready():
         print(f'We have logged in as {client.user}')
-
-    @client.event
-    async def on_message(message):
-        if message.channel.id == int(channel_id):
-            if message.content.startswith('Bloxtime Army'):
+        channel = client.get_channel(channel_id)
+        if not channel:
+            print("Channel not found.")
+            return
+        try:
+            last_message = await channel.history(limit=1).flatten()
+            message = last_message[0]
+            if message.author == client.user:  # Ignore messages sent by self
+                return
+            # Check if the last message in the DM is the one we're interested in
+            if "Bloxtime Army" in message.content:
                 if "You either went offline or you removed your status" in message.content:
-                    # Change status to 'bro what'
-                    print("Changing status to 'bro what'")
-                    await client.change_presence(activity=discord.Game(name="bro what"))
-
-                    # Wait for 2 seconds
-                    await asyncio.sleep(2)
-
-                    # Change status back to 'discord.gg/permfruits'
-                    print("Changing status back to 'discord.gg/permfruits'")
-                    await client.change_presence(activity=discord.Game(name="discord.gg/permfruits"))
-
-                elif "Welcome to the Bloxtime Army" in message.content:
-                    # Do nothing if the expected message is received
-                    pass
+                    print("Offline message received. Changing status to 'bro what'")
+                    await client.change_presence(activity=discord.Game("bro what"))
+                elif "Welcome to the Bloxtime Army. You have been given the role." in message.content:
+                    print("Role granted. Changing status to 'discord.gg/permfruits'")
+                    await client.change_presence(activity=discord.Game(custom_status))
+        except Exception as e:
+            print(f"Error: {e}")
 
     await client.start(token)
 
-
 async def onliner():
-    await check_bot_dm()
-    print(f"Logged in as {username}#{discriminator} ({userid}).")
-    while True:
-        print("Connecting...")
-        await asyncio.sleep(30)
+    client = discord.Client(intents=discord.Intents.all())
 
-# Start the Flask server to keep the web server alive
-keep_alive()
+    @client.event
+    async def on_ready():
+        print(f'We have logged in as {client.user}')
+        await check_bot_dm()  # Check DMs for bot messages
+        await asyncio.sleep(30)  # Wait for 30 seconds
+        await client.close()  # Close the connection
 
-# Get the event loop and run the onliner coroutine until it completes
-loop = asyncio.get_event_loop()
-loop.run_until_complete(onliner())
+    await client.start(token)
+
+# Run the bot
+asyncio.run(onliner())
