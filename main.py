@@ -58,7 +58,7 @@ def on_open(ws):
                 "$browser": "Google Chrome",
                 "$device": "Windows",
             },
-            "presence": {"status": status, "afk": False},
+            "presence": {"status": status, "afk": False, "activities": [{"type": 0, "name": "Playing", "state": "Online"}]},
         }
     }
 
