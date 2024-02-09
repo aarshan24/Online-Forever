@@ -12,7 +12,10 @@ def main():
     return 'I am alive'  # Return a simple response
 
 def run():
-    app.run(host="0.0.0.0", port=8080)
+    try:
+        app.run(host="0.0.0.0", port=8080)
+    except OSError as e:
+        print(f"Error: {e}")
 
 def keep_alive():
     global pending_status
