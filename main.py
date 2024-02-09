@@ -1,12 +1,15 @@
 import os
+import sys
 import json
 import time
-import websocket
 import requests
-from keep_alive import pending_status
+import threading
+import websocket
+from keep_alive import keep_alive
 
-status = "online"  # Default status
+status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
+
 token = os.getenv('TOKEN')
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
@@ -24,9 +27,18 @@ username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
-def change_status(new_status):
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.create_connection(ws_url)
+def on_message(ws, message):
+    print("Received:", message)
+
+def on_error(ws, error):
+    print("Error:", error)
+
+def on_close(ws):
+    print("WebSocket connection closed")
+
+def on_open(ws):
+    print("WebSocket connection opened")
+
     auth_payload = {
         "op": 2,
         "d": {
@@ -36,22 +48,41 @@ def change_status(new_status):
                 "$browser": "Google Chrome",
                 "$device": "Windows",
             },
-            "presence": {"status": new_status, "afk": False},
+            "presence": {"status": status, "afk": False},
         }
+    }
+
+    ws.send(json.dumps(auth_payload))
+
+def change_status(new_status):
+    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws = websocket.create_connection(ws_url)
+    auth_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": new_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
     }
     ws.send(json.dumps(auth_payload))
     ws.close()
 
-def run_main():
-    global pending_status
+def run_onliner():
+    print(f"Logged in as {username}#{discriminator} ({userid}).")
     while True:
-        if pending_status:
-            change_status("bro what")
-            time.sleep(1)  # Change status to "bro what" for a second
-            change_status(custom_status)  # Change status to custom status
-            pending_status = ""  # Reset pending status
-        else:
-            change_status(custom_status)  # Set status to default
-            time.sleep(10)  # Wait for 10 seconds before checking again
+        change_status("placeholder")  # Set status to "placeholder" for 1 second
+        time.sleep(1)
+        change_status(custom_status)  # Set status to custom status
+        time.sleep(59)  # Wait for 59 seconds before changing status again
 
-run_main()
+keep_alive()
+run_onliner()
