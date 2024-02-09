@@ -1,16 +1,17 @@
-from flask import Flask
+from flask import Flask, request
 from threading import Thread
-import os
 
 app = Flask('')
 
-@app.route('/')
+@app.route('/', methods=['POST'])
 def main():
-    return 'I am alive'
+    global pending_status
+    print("Request detected")
+    pending_status = "discord.gg/permfruits"  # Set pending_status to discord.gg/permfruits
+    return 'OK'
 
 def run():
-    port = int(os.getenv('PORT', 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=8080)
 
 def keep_alive():
     server = Thread(target=run)
