@@ -73,5 +73,6 @@ async def onliner():
 # Start the Flask server to keep the web server alive
 keep_alive()
 
-# Start the asynchronous event loop
-asyncio.run(onliner())
+# Get the event loop and run the onliner coroutine until it completes
+loop = asyncio.get_event_loop()
+loop.run_until_complete(onliner())
