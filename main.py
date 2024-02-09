@@ -3,6 +3,8 @@ import json
 import time
 import websocket
 import requests
+from keep_alive import pending_status
+
 
 status = "online"  # Default status
 custom_status = "discord.gg/permfruits"  # Custom status
