@@ -3,6 +3,7 @@ import json
 import time
 import websocket
 import requests
+from keep_alive import keep_alive  # Import keep_alive module
 
 # Global variables
 status = "online"  # Default status
@@ -53,4 +54,6 @@ def run_main():
         except Exception as e:
             print(f"An error occurred: {e}")
 
-run_main()
+if __name__ == "__main__":
+    keep_alive()  # Start the Flask server
+    run_main()  # Run the main function
