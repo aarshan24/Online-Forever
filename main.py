@@ -1,43 +1,94 @@
 import os
-import asyncio
-import discord
-from discord.gateway import DiscordWebSocket
+import sys
+import json
+import time
+import requests
+import websocket
+from keep_alive import keep_alive
+
+status = "online"  # online/dnd/idle
+custom_status = "discord.gg/permfruits"  # Custom status
 
 token = os.getenv('TOKEN')
-
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
-async def check_dm(websocket):
-    dm_channel_id = 1204989685852676106  # Correct DM channel ID
+headers = {"Authorization": token, "Content-Type": "application/json"}
 
-    # Listen for messages in the DM channel
-    async for message in websocket.dms(dm_channel_id):
-        if "welcome to" in message.content.lower():
-            print("Received 'welcome to' message. Changing status to 'discord.gg/permfruits'")
-            await client.change_presence(activity=discord.Game("discord.gg/permfruits"))
-        else:
-            print("No 'welcome to' message found. Changing status to 'bro what'")
-            await client.change_presence(activity=discord.Game("bro what"))
+validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
+if validate.status_code != 200:
+    print("[ERROR] Your token might be invalid. Please check it again.")
+    sys.exit()
 
-    await asyncio.sleep(5)  # Wait for 5 seconds before closing the connection
+userinfo = validate.json()
+username = userinfo["username"]
+discriminator = userinfo["discriminator"]
+userid = userinfo["id"]
 
-async def main():
-    client = discord.Client(intents=None)
+def on_message(ws, message):
+    print("Received:", message)
+    msg_data = json.loads(message)
+    if msg_data.get("t") == "MESSAGE_CREATE":
+        message_content = msg_data["d"]["content"]
+        channel_id = msg_data["d"]["channel_id"]
+        if channel_id == "1204989685852676106":  # Replace this with your actual DM channel ID
+            if "welcome to" in message_content.lower():
+                print("Received 'welcome to' message. Changing status to 'discord.gg/permfruits'")
+                update_status(custom_status)
+            else:
+                print("No 'welcome to' message found. Changing status to 'bro what'")
+                update_status("bro what")
 
-    @client.event
-    async def on_ready():
-        print(f'We have logged in as {client.user}')
+def on_error(ws, error):
+    print("Error:", error)
 
-        websocket = DiscordWebSocket.from_client(client)
-        await websocket.open()
+def on_close(ws):
+    print("WebSocket connection closed")
 
-        await check_dm(websocket)
+def on_open(ws):
+    print("WebSocket connection opened")
 
-        await websocket.close()
+    auth_payload = {
+        "op": 2,
+        "d": {
+            "token": token,
+            "properties": {
+                "$os": "Windows 10",
+                "$browser": "Google Chrome",
+                "$device": "Windows",
+            },
+            "presence": {"status": status, "afk": False},
+        }
+    }
 
-    await client.start(token)
+    ws.send(json.dumps(auth_payload))
 
-# Run the bot
-asyncio.run(main())
+def update_status(new_status):
+    cstatus_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": new_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
+    }
+    ws.send(json.dumps(cstatus_payload))
+
+def run_onliner():
+    print(f"Logged in as {username}#{discriminator} ({userid}).")
+    while True:
+        ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+        ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
+        ws.run_forever()
+
+keep_alive()
+run_onliner()
