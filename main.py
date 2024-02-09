@@ -13,7 +13,7 @@ if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
-headers = {"Authorization": token, "Content-Type": "application/json"}
+headers = {"Authorization": f"Bot {token}", "Content-Type": "application/json"}
 
 validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
 if validate.status_code != 200:
@@ -25,28 +25,41 @@ username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
-last_message = None  # Variable to store the last received message
+def set_status(status, custom_status=None):
+    url = f"https://discord.com/api/v9/users/@me/settings"
+    data = {
+        "custom_status": {
+            "text": custom_status,
+            "emoji_name": None,
+            "emoji_id": None
+        } if custom_status else None,
+        "status": status
+    }
+    response = requests.patch(url, headers=headers, json=data)
+    if response.status_code == 200:
+        print(f"Status updated successfully. Status: {status}, Custom Status: {custom_status}")
+    else:
+        print("Failed to update status. Status code:", response.status_code)
 
 def on_message(ws, message):
-    global last_message  # Use the global variable
-
-    # Print the received message
     print("Received message:", message)
-
-    # Parse the message
     msg_data = json.loads(message)
-
-    # Check if the message is a DM and store it as the last message
     if msg_data.get("t") == "MESSAGE_CREATE":
-        last_message = msg_data
+        message_content = msg_data["d"]["content"]
+        channel_id = msg_data["d"]["channel_id"]
+        if channel_id == "1204989685852676106":  # Replace this with your actual DM channel ID
+            if "welcome to" in message_content.lower():
+                print("Received 'welcome to' message. Changing status to 'discord.gg/permfruits'")
+                set_status(status, custom_status)
+            else:
+                print("No 'welcome to' message found. Changing status to 'bro what'")
+                set_status(status, "bro what")
 
 def on_error(ws, error):
     print("Error:", error)
 
 def on_close(ws):
     print("WebSocket connection closed")
-    # Process the last received message after WebSocket connection closes
-    process_last_message()
 
 def on_open(ws):
     print("WebSocket connection opened")
@@ -65,43 +78,6 @@ def on_open(ws):
     }
 
     ws.send(json.dumps(auth_payload))
-
-    # Update status to custom status
-    update_status(custom_status)
-
-def update_status(new_status):
-    cstatus_payload = {
-        "op": 3,
-        "d": {
-            "since": 0,
-            "activities": [
-                {
-                    "type": 4,
-                    "state": new_status,
-                    "name": "Custom Status",
-                    "id": "custom",
-                }
-            ],
-            "status": status,
-            "afk": False,
-        },
-    }
-    ws.send(json.dumps(cstatus_payload))
-
-def process_last_message():
-    global last_message
-
-    if last_message:
-        message_content = last_message["d"]["content"]
-        channel_id = last_message["d"]["channel_id"]
-
-        if channel_id == "1204989685852676106":  # Replace with your actual DM channel ID
-            if "welcome to" in message_content.lower():
-                print("Received 'welcome to' message. Changing status to 'discord.gg/permfruits'")
-                update_status(custom_status)
-            else:
-                print("No 'welcome to' message found. Changing status to 'bro what'")
-                update_status("bro what")
 
 def run_onliner():
     print(f"Logged in as {username}#{discriminator} ({userid}).")
