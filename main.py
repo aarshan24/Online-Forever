@@ -37,5 +37,8 @@ async def check_dm():
         await asyncio.sleep(5)  # Wait for 5 seconds
         await client.close()  # Close the connection
 
+async def main():
+    await check_dm()
+
 # Run the bot
-asyncio.run(check_dm())
+asyncio.run(main())
