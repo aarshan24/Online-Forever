@@ -1,13 +1,12 @@
 import os
 import sys
 import json
-import time
 import requests
 import threading
 import websocket
 from keep_alive import keep_alive
 
-status = "online"  # online/dnd/idle
+status = "online"  # Initial status
 
 custom_status = "discord.gg/permfruits"  # Custom status
 
@@ -29,11 +28,7 @@ discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
 def on_message(ws, message):
-    data = json.loads(message)
-    if 'd' in data:
-        presence_data = data['d']
-        if 'status' in presence_data:
-            print("Account status:", presence_data['status'])
+    pass
 
 def on_error(ws, error):
     pass
@@ -42,53 +37,51 @@ def on_close(ws):
     pass
 
 def on_open(ws):
-    pass
-
-    auth_payload = {
-        "op": 2,
-        "d": {
-            "token": token,
-            "properties": {
-                "$os": "Windows 10",
-                "$browser": "Google Chrome",
-                "$device": "Windows",
-            },
-            "presence": {"status": status, "afk": False},
+    print("WebSocket connection opened")
+    while True:
+        auth_payload = {
+            "op": 2,
+            "d": {
+                "token": token,
+                "properties": {
+                    "$os": "Windows 10",
+                    "$browser": "Google Chrome",
+                    "$device": "Windows",
+                },
+                "presence": {"status": status, "afk": False},
+            }
         }
-    }
 
-    ws.send(json.dumps(auth_payload))
+        ws.send(json.dumps(auth_payload))
 
-    cstatus_payload = {
-        "op": 3,
-        "d": {
-            "since": 0,
-            "activities": [
-                {
-                    "type": 4,
-                    "state": custom_status,
-                    "name": "Custom Status",
-                    "id": "custom",
-                }
-            ],
-            "status": status,
-            "afk": False,
-        },
-    }
+        cstatus_payload = {
+            "op": 3,
+            "d": {
+                "since": 0,
+                "activities": [
+                    {
+                        "type": 4,
+                        "state": custom_status,
+                        "name": "Custom Status",
+                        "id": "custom",
+                    }
+                ],
+                "status": status,
+                "afk": False,
+            },
+        }
 
-    ws.send(json.dumps(cstatus_payload))
+        ws.send(json.dumps(cstatus_payload))
 
-def onliner(token, status):
-    if status == "online":
-        ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-        ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-        ws.run_forever()
+def onliner(token):
+    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
+    ws.run_forever()
 
 def run_onliner():
     print(f"Logged in as {username}#{discriminator} ({userid}).")
     while True:
-        onliner(token, status)
-        time.sleep(30)
+        onliner(token)
 
 keep_alive()
 run_onliner()
