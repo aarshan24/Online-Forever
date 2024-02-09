@@ -3,7 +3,6 @@ import json
 import time
 import websocket
 import requests
-import threading
 from keep_alive import pending_status
 
 status = "online"  # Default status
@@ -55,5 +54,4 @@ def run_main():
             change_status(custom_status)  # Set status to default
             time.sleep(10)  # Wait for 10 seconds before checking again
 
-# Start run_main in a separate thread
-threading.Thread(target=run_main).start()
+run_main()
