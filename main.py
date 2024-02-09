@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import time
 import requests
 import websocket
 from keep_alive import keep_alive
@@ -27,7 +26,6 @@ discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
 def on_message(ws, message):
-    print("Received:", message)
     msg_data = json.loads(message)
     if msg_data.get("t") == "MESSAGE_CREATE":
         message_content = msg_data["d"]["content"]
@@ -58,7 +56,7 @@ def on_open(ws):
                 "$browser": "Google Chrome",
                 "$device": "Windows",
             },
-            "presence": {"status": status, "afk": False, "activities": [{"type": 0, "name": "Playing", "state": "Online"}]},
+            "presence": {"status": status, "afk": False, "activities": [{"type": 4, "state": custom_status}]},
         }
     }
 
