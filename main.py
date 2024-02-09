@@ -1,15 +1,12 @@
 import os
-import sys
 import json
 import time
-import requests
-import threading
 import websocket
-from keep_alive import keep_alive
+import requests
 
-status = "online"  # online/dnd/idle
+# Global variables
+status = "online"  # Default status
 custom_status = "discord.gg/permfruits"  # Custom status
-
 token = os.getenv('TOKEN')
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
@@ -27,18 +24,9 @@ username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
-def on_message(ws, message):
-    print("Received:", message)
-
-def on_error(ws, error):
-    print("Error:", error)
-
-def on_close(ws):
-    print("WebSocket connection closed")
-
-def on_open(ws):
-    print("WebSocket connection opened")
-
+def change_status(new_status):
+    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws = websocket.create_connection(ws_url)
     auth_payload = {
         "op": 2,
         "d": {
@@ -48,41 +36,21 @@ def on_open(ws):
                 "$browser": "Google Chrome",
                 "$device": "Windows",
             },
-            "presence": {"status": status, "afk": False},
+            "presence": {"status": new_status, "afk": False},
         }
-    }
-
-    ws.send(json.dumps(auth_payload))
-
-def change_status(new_status):
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.create_connection(ws_url)
-    auth_payload = {
-        "op": 3,
-        "d": {
-            "since": 0,
-            "activities": [
-                {
-                    "type": 4,
-                    "state": new_status,
-                    "name": "Custom Status",
-                    "id": "custom",
-                }
-            ],
-            "status": status,
-            "afk": False,
-        },
     }
     ws.send(json.dumps(auth_payload))
     ws.close()
 
-def run_onliner():
-    print(f"Logged in as {username}#{discriminator} ({userid}).")
+def run_main():
     while True:
-        change_status("placeholder")  # Set status to "placeholder" for 1 second
-        time.sleep(1)
-        change_status(custom_status)  # Set status to custom status
-        time.sleep(59)  # Wait for 59 seconds before changing status again
+        try:
+            change_status("placeholder")  # Set status to "placeholder"
+            time.sleep(1)  # Keep status as "placeholder" for one second
 
-keep_alive()
-run_onliner()
+            change_status(custom_status)  # Set status to custom status
+            time.sleep(59)  # Keep status as custom status for 59 seconds
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+run_main()
