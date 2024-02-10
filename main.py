@@ -5,6 +5,7 @@ import json
 import time
 import threading
 import websocket
+import sys  # Import sys module
 
 app = Flask('')
 
@@ -26,7 +27,7 @@ def on_message(ws, message):
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(ws):
+def on_close(ws, *args):
     print("WebSocket connection closed")
     global ws
     ws = None  # Reset WebSocket connection
@@ -50,7 +51,8 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-    def update_status(ws):
+    def update_status():
+        global ws  # Declare ws as global within this function
         while True:
             if ws is None or not ws.sock or not ws.sock.connected:
                 print("WebSocket connection is closed. Reconnecting...")
@@ -79,7 +81,7 @@ def on_open(ws):
             print("Sent custom status")
             time.sleep(59)
 
-    threading.Thread(target=update_status, args=(ws,), daemon=True).start()
+    threading.Thread(target=update_status, daemon=True).start()
 
 def onliner(token, status):
     global ws
