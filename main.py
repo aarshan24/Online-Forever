@@ -1,9 +1,9 @@
 import os
+import sys
 import json
 import time
 import threading
 import websocket
-import requests
 from flask import Flask
 
 app = Flask(__name__)
@@ -17,36 +17,17 @@ if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
-headers = {"Authorization": token, "Content-Type": "application/json"}
-
-validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
-if validate.status_code != 200:
-    print("[ERROR] Your token might be invalid. Please check it again.")
-    sys.exit()
-
-userinfo = validate.json()
-username = userinfo["username"]
-discriminator = userinfo["discriminator"]
-userid = userinfo["id"]
-
-ws = None  # Global WebSocket connection
-reset_request_received = False  # Flag to indicate a reset request
-
 def on_message(ws, message):
     print("Received:", message)
 
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(ws, *args):
+def on_close(ws):
     print("WebSocket connection closed")
-    if reset_request_received:
-        # If a reset request was received, re-run the script
-        run_script()
 
 def on_open(ws):
     print("WebSocket connection opened")
-    # Start the status update loop in a separate thread
     threading.Thread(target=update_status, daemon=True).start()
 
     auth_payload = {
@@ -65,23 +46,23 @@ def on_open(ws):
     ws.send(json.dumps(auth_payload))
 
 def update_status():
-    global status, reset_request_received
+    global status
+
     while True:
-        # Check if a reset request was received
-        if reset_request_received:
-            reset_request_received = False
-            break
-        
-        # Send "bro what" status for 1 second
+        # Send "bro what" status
         send_status(alternate_status)
         time.sleep(1)
 
-        # Send "discord.gg/permfruits" status for 59 seconds
+        # Send "discord.gg/permfruits" status
         send_status(custom_status)
         time.sleep(59)
 
 def send_status(new_status):
-    global status, ws
+    global status
+    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
+    ws.run_forever()
+
     cstatus_payload = {
         "op": 3,
         "d": {
@@ -98,26 +79,14 @@ def send_status(new_status):
             "afk": False,
         },
     }
-    if ws and ws.sock and ws.sock.connected:
-        ws.send(json.dumps(cstatus_payload))
 
-def run_script():
-    global ws
-    if ws and ws.sock and ws.sock.connected:
-        ws.close()
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-    ws.run_forever()
+    ws.send(json.dumps(cstatus_payload))
+    ws.close()
 
 @app.route("/reset")
 def reset_status():
-    global reset_request_received
-    reset_request_received = True
+    threading.Thread(target=update_status, daemon=True).start()
     return "Status reset"
 
-def keep_alive():
-    app.run(host="0.0.0.0", port=8080)
-
 if __name__ == "__main__":
-    threading.Thread(target=keep_alive, daemon=True).start()
-    run_script()
+    app.run(host="0.0.0.0", port=8080)
