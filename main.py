@@ -5,10 +5,11 @@ import time
 import requests
 import threading
 import websocket
-from keep_alive import keep_alive
+from flask import Flask
+
+app = Flask(__name__)
 
 status = "online"  # online/dnd/idle
-
 custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
 
@@ -76,11 +77,13 @@ def on_open(ws):
                 },
             }
             ws.send(json.dumps(cstatus_payload))
+            print("Sent alternate status")
             time.sleep(1)
 
             # Send "discord.gg/permfruits" status
             cstatus_payload["d"]["activities"][0]["state"] = custom_status
             ws.send(json.dumps(cstatus_payload))
+            print("Sent custom status")
             time.sleep(59)
 
     threading.Thread(target=update_status, daemon=True).start()
@@ -106,9 +109,23 @@ def run_script():
         return
     try:
         open("/tmp/discord_status_lock", 'a').close()  # Create lock file
-        keep_alive()
         run_onliner()
     finally:
         os.remove("/tmp/discord_status_lock")  # Remove lock file
 
-run_script()
+@app.route("/reset")
+def reset_status():
+    threading.Thread(target=reset_loop, daemon=True).start()
+    return "Status reset"
+
+def reset_loop():
+    global status
+    status = "dnd"  # Change status to "dnd" temporarily
+    print("Status changed to dnd")
+    time.sleep(1)  # Wait for 1 second
+    status = "online"  # Change status back to "online"
+    print("Status changed to online")
+    return "Loop reset"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
