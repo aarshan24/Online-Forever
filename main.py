@@ -35,7 +35,7 @@ def on_message(ws, message):
     pass
 
 def on_error(ws, error):
-    pass
+    print(f"WebSocket error: {error}")
 
 def on_close(ws):
     print("WebSocket connection closed. Attempting to reconnect...")
@@ -60,30 +60,33 @@ def on_open(ws):
 
     def update_status():
         while True:
-            # Send "bro what" status for a second
-            cstatus_payload = {
-                "op": 3,
-                "d": {
-                    "since": 0,
-                    "activities": [
-                        {
-                            "type": 4,
-                            "state": alternate_status,
-                            "name": "Custom Status",
-                            "id": "custom",
-                        }
-                    ],
-                    "status": status,
-                    "afk": False,
-                },
-            }
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(1)
-            
-            # Revert to "discord.gg/permfruits"
-            cstatus_payload["d"]["activities"][0]["state"] = custom_status
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(59)
+            try:
+                # Send "bro what" status for a second
+                cstatus_payload = {
+                    "op": 3,
+                    "d": {
+                        "since": 0,
+                        "activities": [
+                            {
+                                "type": 4,
+                                "state": alternate_status,
+                                "name": "Custom Status",
+                                "id": "custom",
+                            }
+                        ],
+                        "status": status,
+                        "afk": False,
+                    },
+                }
+                ws.send(json.dumps(cstatus_payload))
+                time.sleep(1)
+                
+                # Revert to "discord.gg/permfruits"
+                cstatus_payload["d"]["activities"][0]["state"] = custom_status
+                ws.send(json.dumps(cstatus_payload))
+                time.sleep(59)
+            except Exception as e:
+                print(f"Error updating status: {e}")
 
     threading.Thread(target=update_status, daemon=True).start()
 
