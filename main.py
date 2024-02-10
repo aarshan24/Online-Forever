@@ -38,7 +38,7 @@ def on_message(ws, message):
 def on_error(ws, error):
     print("WebSocket error:", error)
 
-def on_close(ws):
+def on_close(ws, *args):
     print("WebSocket connection closed")
 
 def on_open(ws):
