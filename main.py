@@ -1,10 +1,11 @@
-from flask import Flask
-from threading import Thread
 import os
+import sys
 import json
-import time
+import requests
 import threading
 import websocket
+from flask import Flask
+import time
 
 app = Flask('')
 
@@ -20,12 +21,12 @@ if not token:
 headers = {"Authorization": token, "Content-Type": "application/json"}
 
 def on_message(ws, message):
-    pass
+    print("Received:", message)
 
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(ws, *args):
+def on_close(ws):
     print("WebSocket connection closed")
 
 def on_open(ws):
@@ -46,42 +47,29 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-    def update_status():
-        while True:
-            # Send custom status
-            cstatus_payload = {
-                "op": 3,
-                "d": {
-                    "since": 0,
-                    "activities": [
-                        {
-                            "type": 4,
-                            "state": custom_status,
-                            "name": "Custom Status",
-                            "id": "custom",
-                        }
-                    ],
-                    "status": status,
-                    "afk": False,
-                },
-            }
-            ws.send(json.dumps(cstatus_payload))
-            print("Sent custom status")
-            time.sleep(59)
-
-    threading.Thread(target=update_status, daemon=True).start()
-
-def onliner(token, status):
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-    ws.run_forever()
-
-def run_onliner():
+def update_status(ws):
     while True:
-        onliner(token, status)
-        time.sleep(30)
+        # Send "discord.gg/permfruits" status
+        cstatus_payload = {
+            "op": 3,
+            "d": {
+                "since": 0,
+                "activities": [
+                    {
+                        "type": 4,
+                        "state": custom_status,
+                        "name": "Custom Status",
+                        "id": "custom",
+                    }
+                ],
+                "status": status,
+                "afk": False,
+            },
+        }
+        ws.send(json.dumps(cstatus_payload))
+        time.sleep(59)
 
-def reset_loop():
+def reset_status(ws):
     global status
     status = "dnd"  # Change status to "dnd" temporarily
     print("Status changed to dnd")
@@ -89,21 +77,40 @@ def reset_loop():
     status = "online"  # Change status back to "online"
     print("Status changed to online")
 
+    # Send "discord.gg/permfruits" status
+    cstatus_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": custom_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
+    }
+    ws.send(json.dumps(cstatus_payload))
+
+def onliner(token, status):
+    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
+    update_thread = threading.Thread(target=update_status, args=(ws,), daemon=True)
+    update_thread.start()
+    ws.run_forever()
+
+def run_onliner():
+    onliner(token, status)
+
 @app.route("/reset")
-def reset_status():
-    threading.Thread(target=reset_loop, daemon=True).start()
-    print("Reset flag set to True")
+def reset():
+    threading.Thread(target=reset_status, args=(None,)).start()
     return "Status reset"
 
-def run():
-    app.run(host="0.0.0.0", port=8080)
-
-def keep_alive():
-    server = Thread(target=run)
-    server.start()
-
 if __name__ == "__main__":
-    keep_alive()
     run_onliner()
-
-
+    app.run(host="0.0.0.0", port=8080)
