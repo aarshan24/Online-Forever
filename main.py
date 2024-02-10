@@ -27,13 +27,11 @@ def on_message(ws, message):
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(ws, *args):
+def on_close(ws):
     print("WebSocket connection closed")
 
 def on_open(ws):
-    global ws  # Declare ws as global within this function
     print("WebSocket connection opened")
-
     auth_payload = {
         "op": 2,
         "d": {
@@ -49,36 +47,36 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-    def update_status(ws):
-        while True:
-            if ws is None or not ws.sock or not ws.sock.connected:
-                print("WebSocket connection is closed. Reconnecting...")
-                onliner(token, status)
-                time.sleep(5)  # Wait before attempting to send status
-                continue
-
-            # Send custom status
-            cstatus_payload = {
-                "op": 3,
-                "d": {
-                    "since": 0,
-                    "activities": [
-                        {
-                            "type": 4,
-                            "state": custom_status,
-                            "name": "Custom Status",
-                            "id": "custom",
-                        }
-                    ],
-                    "status": status,
-                    "afk": False,
-                },
-            }
-            ws.send(json.dumps(cstatus_payload))
-            print("Sent custom status")
-            time.sleep(59)
-
     threading.Thread(target=update_status, args=(ws,), daemon=True).start()
+
+def update_status(ws):
+    while True:
+        if ws is None or not ws.sock or not ws.sock.connected:
+            print("WebSocket connection is closed. Reconnecting...")
+            onliner(token, status)
+            time.sleep(5)  # Wait before attempting to send status
+            continue
+
+        # Send custom status
+        cstatus_payload = {
+            "op": 3,
+            "d": {
+                "since": 0,
+                "activities": [
+                    {
+                        "type": 4,
+                        "state": custom_status,
+                        "name": "Custom Status",
+                        "id": "custom",
+                    }
+                ],
+                "status": status,
+                "afk": False,
+            },
+        }
+        ws.send(json.dumps(cstatus_payload))
+        print("Sent custom status")
+        time.sleep(59)
 
 def onliner(token, status):
     global ws
