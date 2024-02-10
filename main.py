@@ -1,5 +1,5 @@
 from flask import Flask, request
-from threading import Thread, Semaphore
+from threading import Thread
 import os
 import json
 import time
@@ -13,7 +13,6 @@ custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
 token = os.getenv('TOKEN')
 ws = None  # Global variable to hold WebSocket connection
-semaphore = Semaphore(2)  # Semaphore to limit the number of active threads
 
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
@@ -111,9 +110,7 @@ def reset_status():
     return "Status reset"
 
 def run():
-    semaphore.acquire()
     app.run(host="0.0.0.0", port=8080)
-    semaphore.release()
 
 def keep_alive():
     server = Thread(target=run)
