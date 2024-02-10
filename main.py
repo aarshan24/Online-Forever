@@ -28,8 +28,6 @@ username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
-lock = threading.Lock()
-
 def on_message(ws, message):
     print("Received:", message)
 
@@ -62,14 +60,13 @@ def update_status():
     global status
 
     while True:
-        with lock:
-            # Send "bro what" status
-            send_status(alternate_status)
-            time.sleep(1)
+        # Send "bro what" status
+        send_status(alternate_status)
+        time.sleep(1)
 
-            # Send "discord.gg/permfruits" status
-            send_status(custom_status)
-            time.sleep(59)
+        # Send "discord.gg/permfruits" status
+        send_status(custom_status)
+        time.sleep(59)
 
 def send_status(new_status):
     global status
