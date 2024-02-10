@@ -32,7 +32,7 @@ discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
 def on_message(ws, message):
-    print("Received:", message)
+    pass
 
 def on_error(ws, error):
     print("Error:", error)
