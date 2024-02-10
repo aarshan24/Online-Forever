@@ -5,7 +5,10 @@ import time
 import threading
 import websocket
 import requests
+from flask import Flask
 from keep_alive import keep_alive
+
+app = Flask(__name__)
 
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
@@ -94,11 +97,14 @@ def send_status(new_status):
     ws.send(json.dumps(cstatus_payload))
     ws.close()
 
-def run_onliner():
-    print(f"Logged in as {username}#{discriminator} ({userid}).")
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-    ws.run_forever()
+@app.route("/reset")
+def reset_status():
+    threading.Thread(target=run_onliner, daemon=True).start()
+    return "Status reset"
 
-keep_alive()
-run_onliner()
+def run_onliner():
+    keep_alive()
+    app.run(host="0.0.0.0", port=8080)
+
+if __name__ == "__main__":
+    run_onliner()
