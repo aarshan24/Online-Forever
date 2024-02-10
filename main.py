@@ -21,7 +21,7 @@ if not token:
 headers = {"Authorization": token, "Content-Type": "application/json"}
 
 def on_message(ws, message):
-    print("Received:", message)
+    pass
 
 def on_error(ws, error):
     print("Error:", error)
