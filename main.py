@@ -128,6 +128,7 @@ def run_script():
 def reset_status():
     global reset_flag
     reset_flag = True
+    print("Reset flag set to True")
     return "Status reset"
 
 def run():
