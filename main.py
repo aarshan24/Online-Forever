@@ -4,11 +4,10 @@ import json
 import time
 import threading
 import websocket
+import tornado.ioloop
+import tornado.web
 import requests
-from flask import Flask
 from keep_alive import keep_alive
-
-app = Flask(__name__)
 
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
@@ -97,14 +96,16 @@ def send_status(new_status):
     ws.send(json.dumps(cstatus_payload))
     ws.close()
 
-@app.route("/reset")
-def reset_status():
-    threading.Thread(target=run_onliner, daemon=True).start()
-    return "Status reset"
+class ResetHandler(tornado.web.RequestHandler):
+    def get(self):
+        threading.Thread(target=reset_status, daemon=True).start()
+        self.write("Status reset")
 
-def run_onliner():
+def reset_status():
     keep_alive()
-    app.run(host="0.0.0.0", port=8081)  # Change the port to 8081 or any other available port
+    app = tornado.web.Application([(r"/reset", ResetHandler)])
+    app.listen(8081)
+    tornado.ioloop.IOLoop.current().start()
 
 if __name__ == "__main__":
-    run_onliner()
+    reset_status()
