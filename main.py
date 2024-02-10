@@ -30,6 +30,8 @@ username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
+reset_flag = False
+
 def on_message(ws, message):
     pass
 
@@ -58,6 +60,7 @@ def on_open(ws):
     ws.send(json.dumps(auth_payload))
 
     def update_status():
+        global reset_flag
         while True:
             try:
                 # Send "discord.gg/permfruits" status
@@ -77,8 +80,18 @@ def on_open(ws):
                         "afk": False,
                     },
                 }
-                ws.send(json.dumps(cstatus_payload))
-                print("Sent custom status")
+                if reset_flag:
+                    cstatus_payload["d"]["activities"][0]["state"] = "dnd"
+                    ws.send(json.dumps(cstatus_payload))
+                    print("Status changed to dnd")
+                    time.sleep(1)  # Wait for 1 second
+                    cstatus_payload["d"]["activities"][0]["state"] = custom_status
+                    ws.send(json.dumps(cstatus_payload))
+                    print("Status changed to online")
+                    reset_flag = False
+                else:
+                    ws.send(json.dumps(cstatus_payload))
+                    print("Sent custom status")
                 time.sleep(59)
             except Exception as e:
                 print("Error sending custom status:", e)
@@ -113,17 +126,9 @@ def run_script():
 
 @app.route("/reset")
 def reset_status():
-    threading.Thread(target=reset_loop, daemon=True).start()
+    global reset_flag
+    reset_flag = True
     return "Status reset"
-
-def reset_loop():
-    global status
-    status = "dnd"  # Change status to "dnd" temporarily
-    print("Status changed to dnd")
-    time.sleep(2)  # Wait for 1 second
-    status = "online"  # Change status back to "online"
-    print("Status changed to online")
-    return "Loop reset"
 
 def run():
     app.run(host="0.0.0.0", port=8080)
