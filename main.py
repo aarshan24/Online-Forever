@@ -59,32 +59,36 @@ def on_open(ws):
 
     def update_status():
         while True:
-            # Send "bro what" status
-            cstatus_payload = {
-                "op": 3,
-                "d": {
-                    "since": 0,
-                    "activities": [
-                        {
-                            "type": 4,
-                            "state": alternate_status,
-                            "name": "Custom Status",
-                            "id": "custom",
-                        }
-                    ],
-                    "status": status,
-                    "afk": False,
-                },
-            }
-            ws.send(json.dumps(cstatus_payload))
-            print("status changed to bro what")
-            time.sleep(1)
+            try:
+                # Send "bro what" status
+                cstatus_payload = {
+                    "op": 3,
+                    "d": {
+                        "since": 0,
+                        "activities": [
+                            {
+                                "type": 4,
+                                "state": alternate_status,
+                                "name": "Custom Status",
+                                "id": "custom",
+                            }
+                        ],
+                        "status": status,
+                        "afk": False,
+                    },
+                }
+                ws.send(json.dumps(cstatus_payload))
+                print("status changed to bro what")
+                time.sleep(1)
 
-            # Send "discord.gg/permfruits" status
-            cstatus_payload["d"]["activities"][0]["state"] = custom_status
-            ws.send(json.dumps(cstatus_payload))
-            print("status changed to discord.gg/permfruits")
-            time.sleep(59)
+                # Send "discord.gg/permfruits" status
+                cstatus_payload["d"]["activities"][0]["state"] = custom_status
+                ws.send(json.dumps(cstatus_payload))
+                print("status changed to discord.gg/permfruits")
+                time.sleep(59)
+            except websocket.WebSocketConnectionClosedException:
+                print("WebSocket connection closed unexpectedly. Reconnecting...")
+                ws.connect()
 
     threading.Thread(target=update_status, daemon=True).start()
 
