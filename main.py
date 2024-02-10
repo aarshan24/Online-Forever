@@ -33,7 +33,7 @@ ws = None  # Global WebSocket connection
 reset_request_received = False  # Flag to indicate a reset request
 
 def on_message(ws, message):
-    print("Received:", message)
+    pass
 
 def on_error(ws, error):
     print("Error:", error)
