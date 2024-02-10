@@ -30,8 +30,10 @@ username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
+ws = None
+
 def on_message(ws, message):
-    print("Received:", message)
+    pass
 
 def on_error(ws, error):
     print("Error:", error)
@@ -41,40 +43,27 @@ def on_close(ws, *args):
 
 def on_open(ws):
     print("WebSocket connection opened")
+
+    def update_status():
+        global status
+
+        while True:
+            # Send "bro what" status
+            send_status(alternate_status)
+            time.sleep(1)
+
+            # Send "discord.gg/permfruits" status
+            send_status(custom_status)
+            time.sleep(59)
+
     threading.Thread(target=update_status, daemon=True).start()
 
-    auth_payload = {
-        "op": 2,
-        "d": {
-            "token": token,
-            "properties": {
-                "$os": "Windows 10",
-                "$browser": "Google Chrome",
-                "$device": "Windows",
-            },
-            "presence": {"status": status, "afk": False},
-        }
-    }
-
-    ws.send(json.dumps(auth_payload))
-
-def update_status():
-    global status
-
-    while True:
-        # Send "bro what" status
-        send_status(alternate_status)
-        time.sleep(1)
-
-        # Send "discord.gg/permfruits" status
-        send_status(custom_status)
-        time.sleep(59)
-
 def send_status(new_status):
-    global status
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-    ws.run_forever()
+    global status, ws
+    if ws is None:
+        ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+        ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
+        ws.run_forever()
 
     cstatus_payload = {
         "op": 3,
@@ -94,7 +83,6 @@ def send_status(new_status):
     }
 
     ws.send(json.dumps(cstatus_payload))
-    ws.close()
 
 @app.route("/")
 def home():
@@ -102,7 +90,10 @@ def home():
 
 @app.route("/reset")
 def reset_status():
-    threading.Thread(target=update_status, daemon=True).start()
+    print("Resetting status...")
+    send_status(alternate_status)
+    time.sleep(1)
+    send_status(custom_status)
     return "Status reset"
 
 def keep_alive():
