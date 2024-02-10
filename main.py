@@ -18,6 +18,7 @@ if not token:
     sys.exit()
 
 headers = {"Authorization": token, "Content-Type": "application/json"}
+ws = None  # Global variable to hold WebSocket connection
 
 def on_message(ws, message):
     pass
@@ -27,7 +28,8 @@ def on_error(ws, error):
 
 def on_close(ws):
     print("WebSocket connection closed")
-    onliner(token, status)  # Reconnect WebSocket
+    global ws
+    ws = None  # Reset WebSocket connection
 
 def on_open(ws):
     print("WebSocket connection opened")
@@ -49,6 +51,12 @@ def on_open(ws):
 
     def update_status():
         while True:
+            if ws is None or not ws.sock or not ws.sock.connected:
+                print("WebSocket connection is closed. Reconnecting...")
+                onliner(token, status)
+                time.sleep(5)  # Wait before attempting to send status
+                continue
+
             # Send custom status
             cstatus_payload = {
                 "op": 3,
@@ -73,6 +81,7 @@ def on_open(ws):
     threading.Thread(target=update_status, daemon=True).start()
 
 def onliner(token, status):
+    global ws
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
