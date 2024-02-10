@@ -12,7 +12,7 @@ status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
 token = os.getenv('TOKEN')
-ws = None  # Global variable to hold WebSocket connection
+global ws = None  # Global variable to hold WebSocket connection
 
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
@@ -91,7 +91,7 @@ def run_onliner():
         onliner(token, status)
         time.sleep(30)
 
-def reset_loop(ws):
+def reset_loop():
     global status
     status = "dnd"  # Change status to "dnd" temporarily
     print("Status changed to dnd")
@@ -101,7 +101,7 @@ def reset_loop(ws):
 
 @app.route("/reset")
 def reset_status():
-    threading.Thread(target=reset_loop, args=(ws,), daemon=True).start()
+    threading.Thread(target=reset_loop, daemon=True).start()
     print("Reset flag set to True")
     return "Status reset"
 
