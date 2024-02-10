@@ -35,15 +35,12 @@ def on_message(ws, message):
     pass
 
 def on_error(ws, error):
-    print(f"WebSocket error: {error}")
+    pass
 
 def on_close(ws):
-    print("WebSocket connection closed. Attempting to reconnect...")
-    time.sleep(5)  # Wait for a few seconds before attempting to reconnect
-    onliner(token, status)
+    pass
 
 def on_open(ws):
-    print("WebSocket connection opened")
     auth_payload = {
         "op": 2,
         "d": {
@@ -56,37 +53,35 @@ def on_open(ws):
             "presence": {"status": status, "afk": False},
         }
     }
+
     ws.send(json.dumps(auth_payload))
 
     def update_status():
         while True:
-            try:
-                # Send "bro what" status for a second
-                cstatus_payload = {
-                    "op": 3,
-                    "d": {
-                        "since": 0,
-                        "activities": [
-                            {
-                                "type": 4,
-                                "state": alternate_status,
-                                "name": "Custom Status",
-                                "id": "custom",
-                            }
-                        ],
-                        "status": status,
-                        "afk": False,
-                    },
-                }
-                ws.send(json.dumps(cstatus_payload))
-                time.sleep(1)
-                
-                # Revert to "discord.gg/permfruits"
-                cstatus_payload["d"]["activities"][0]["state"] = custom_status
-                ws.send(json.dumps(cstatus_payload))
-                time.sleep(59)
-            except Exception as e:
-                print(f"Error updating status: {e}")
+            # Send "bro what" status
+            cstatus_payload = {
+                "op": 3,
+                "d": {
+                    "since": 0,
+                    "activities": [
+                        {
+                            "type": 4,
+                            "state": alternate_status,
+                            "name": "Custom Status",
+                            "id": "custom",
+                        }
+                    ],
+                    "status": status,
+                    "afk": False,
+                },
+            }
+            ws.send(json.dumps(cstatus_payload))
+            time.sleep(1)
+
+            # Send "discord.gg/permfruits" status
+            cstatus_payload["d"]["activities"][0]["state"] = custom_status
+            ws.send(json.dumps(cstatus_payload))
+            time.sleep(59)
 
     threading.Thread(target=update_status, daemon=True).start()
 
@@ -100,28 +95,6 @@ def run_onliner():
     while True:
         onliner(token, status)
         time.sleep(30)
-
-def reset_status_loop():
-    global custom_status
-    custom_status = "discord.gg/permfruits"  # Reset custom status
-    print("Status update loop reset")
-
-def run():
-    app.run(host="0.0.0.0", port=8080)
-
-def keep_alive():
-    app_thread = Thread(target=run)
-    app_thread.start()
-
-@app.route("/reset")
-def reset_status():
-    reset_status_loop()
-    return "Status reset"
-
-@app.route("/")
-def handle_request():
-    reset_status_loop()
-    return "Status reset"
 
 def lock_file_exists():
     lock_file_path = "/tmp/discord_status_lock"
@@ -137,5 +110,47 @@ def run_script():
         run_onliner()
     finally:
         os.remove("/tmp/discord_status_lock")  # Remove lock file
+
+def send_status(custom_status):
+    print(f"Sending alternate status: {custom_status}")
+    cstatus_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": custom_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
+    }
+    ws.send(json.dumps(cstatus_payload))
+
+def reset_status_loop():
+    print("Status update loop reset")
+    send_status(alternate_status)
+    time.sleep(1)
+    send_status(custom_status)
+
+@app.route('/')
+def main():
+    return 'I am alive'
+
+@app.route('/reset')
+def reset():
+    reset_status_loop()
+    return 'Status update loop reset'
+
+def run():
+    app.run(host="0.0.0.0", port=8080)
+
+def keep_alive():
+    server = Thread(target=run)
+    server.start()
 
 run_script()
