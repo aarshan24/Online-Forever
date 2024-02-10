@@ -98,5 +98,18 @@ def keep_alive():
     server = Thread(target=run)
     server.start()
 
+@app.route("/reset")
+def reset_status():
+    threading.Thread(target=reset_loop, daemon=True).start()
+    return "Status reset"
+
+def reset_loop():
+    global status
+    status = "dnd"  # Change status to "dnd" temporarily
+    print("Status changed to dnd")
+    time.sleep(1)  # Wait for 1 second
+    status = "online"  # Change status back to "online"
+    print("Status changed to online")
+
 if __name__ == "__main__":
     keep_alive()
