@@ -26,6 +26,9 @@ username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
+# Variable to track whether to ignore cronjob requests
+ignore_cronjobs_until = time.time() + (31 * 24 * 60 * 60)  # 31 days
+
 def on_message(ws, message):
     print("Received:", message)
 
@@ -55,6 +58,12 @@ def on_open(ws):
 
     def update_status():
         while True:
+            # Check if it's time to ignore cronjobs
+            if time.time() < ignore_cronjobs_until:
+                print("Ignoring cronjob requests...")
+                time.sleep(60)  # Sleep for 1 minute
+                continue
+
             # Send "bro what" status
             cstatus_payload = {
                 "op": 3,
