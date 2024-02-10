@@ -63,7 +63,7 @@ def on_open(ws):
         global reset_flag
         while True:
             try:
-                # Send "discord.gg/permfruits" status
+                # Send custom status
                 cstatus_payload = {
                     "op": 3,
                     "d": {
@@ -81,11 +81,11 @@ def on_open(ws):
                     },
                 }
                 if reset_flag:
-                    cstatus_payload["d"]["activities"][0]["state"] = "dnd"
+                    cstatus_payload["d"]["status"] = "dnd"
                     ws.send(json.dumps(cstatus_payload))
                     print("Status changed to dnd")
                     time.sleep(1)  # Wait for 1 second
-                    cstatus_payload["d"]["activities"][0]["state"] = custom_status
+                    cstatus_payload["d"]["status"] = "online"
                     ws.send(json.dumps(cstatus_payload))
                     print("Status changed to online")
                     reset_flag = False
