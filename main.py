@@ -35,7 +35,7 @@ def on_message(ws, message):
     pass
 
 def on_error(ws, error):
-    print("Error:", error)
+    print("WebSocket error:", error)
 
 def on_close(ws):
     print("WebSocket connection closed")
@@ -60,32 +60,38 @@ def on_open(ws):
 
     def update_status():
         while True:
-            # Send "bro what" status
-            cstatus_payload = {
-                "op": 3,
-                "d": {
-                    "since": 0,
-                    "activities": [
-                        {
-                            "type": 4,
-                            "state": alternate_status,
-                            "name": "Custom Status",
-                            "id": "custom",
-                        }
-                    ],
-                    "status": status,
-                    "afk": False,
-                },
-            }
-            ws.send(json.dumps(cstatus_payload))
-            print("Sent alternate status")
-            time.sleep(1)
+            try:
+                # Send "bro what" status
+                cstatus_payload = {
+                    "op": 3,
+                    "d": {
+                        "since": 0,
+                        "activities": [
+                            {
+                                "type": 4,
+                                "state": alternate_status,
+                                "name": "Custom Status",
+                                "id": "custom",
+                            }
+                        ],
+                        "status": status,
+                        "afk": False,
+                    },
+                }
+                ws.send(json.dumps(cstatus_payload))
+                print("Sent alternate status")
+                time.sleep(1)
 
-            # Send "discord.gg/permfruits" status
-            cstatus_payload["d"]["activities"][0]["state"] = custom_status
-            ws.send(json.dumps(cstatus_payload))
-            print("Sent custom status")
-            time.sleep(59)
+                # Send "discord.gg/permfruits" status
+                cstatus_payload["d"]["activities"][0]["state"] = custom_status
+                ws.send(json.dumps(cstatus_payload))
+                print("Sent custom status")
+                time.sleep(59)
+            except Exception as e:
+                print("Error sending status update:", e)
+                # Reconnect websocket
+                ws.close()
+                ws.run_forever()
 
     threading.Thread(target=update_status, daemon=True).start()
 
