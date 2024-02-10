@@ -12,6 +12,7 @@ app = Flask('')
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
+ws = None  # Initialize WebSocket connection object
 
 token = os.getenv('TOKEN')
 if not token:
@@ -21,7 +22,7 @@ if not token:
 headers = {"Authorization": token, "Content-Type": "application/json"}
 
 def on_message(ws, message):
-    pass
+    print("Received:", message)
 
 def on_error(ws, error):
     print("Error:", error)
@@ -30,22 +31,9 @@ def on_close(ws, *args):
     print("WebSocket connection closed")
 
 def on_open(ws):
+    global ws
     print("WebSocket connection opened")
-
-    auth_payload = {
-        "op": 2,
-        "d": {
-            "token": token,
-            "properties": {
-                "$os": "Windows 10",
-                "$browser": "Google Chrome",
-                "$device": "Windows",
-            },
-            "presence": {"status": status, "afk": False},
-        }
-    }
-
-    ws.send(json.dumps(auth_payload))
+    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
 
 def update_status(ws):
     while True:
@@ -66,7 +54,8 @@ def update_status(ws):
                 "afk": False,
             },
         }
-        ws.send(json.dumps(cstatus_payload))
+        if ws:  # Check if WebSocket connection is valid
+            ws.send(json.dumps(cstatus_payload))
         time.sleep(59)
 
 def reset_status(ws):
@@ -94,11 +83,13 @@ def reset_status(ws):
             "afk": False,
         },
     }
-    ws.send(json.dumps(cstatus_payload))
+    if ws:  # Check if WebSocket connection is valid
+        ws.send(json.dumps(cstatus_payload))
 
 def onliner(token, status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
+    websocket.enableTrace(True)
+    websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     update_thread = threading.Thread(target=update_status, args=(ws,), daemon=True)
     update_thread.start()
     ws.run_forever()
@@ -108,7 +99,7 @@ def run_onliner():
 
 @app.route("/reset")
 def reset():
-    threading.Thread(target=reset_status, args=(None,)).start()
+    threading.Thread(target=reset_status, args=(ws,)).start()
     return "Status reset"
 
 if __name__ == "__main__":
