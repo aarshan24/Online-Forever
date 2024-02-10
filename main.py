@@ -77,11 +77,13 @@ def on_open(ws):
                 },
             }
             ws.send(json.dumps(cstatus_payload))
+            print("status changed to bro what")
             time.sleep(1)
 
             # Send "discord.gg/permfruits" status
             cstatus_payload["d"]["activities"][0]["state"] = custom_status
             ws.send(json.dumps(cstatus_payload))
+            print("status changed to discord.gg/permfruits")
             time.sleep(59)
 
     threading.Thread(target=update_status, daemon=True).start()
@@ -123,6 +125,7 @@ def reset():
 
 def reset_status_loop():
     send_status(alternate_status)
+    print("set status to alternate")
 
 def send_status(status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
