@@ -77,15 +77,14 @@ def on_open(ws):
                         "afk": False,
                     },
                 }
-                ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
                 ws.send(json.dumps(cstatus_payload))
-                print("status changed to bro what")
+                print("Status changed to 'bro what'")
                 time.sleep(1)
 
                 # Send "discord.gg/permfruits" status
                 cstatus_payload["d"]["activities"][0]["state"] = custom_status
                 ws.send(json.dumps(cstatus_payload))
-                print("status changed to discord.gg/permfruits")
+                print("Status changed to 'discord.gg/permfruits'")
                 time.sleep(59)
             except websocket.WebSocketConnectionClosedException:
                 print("WebSocket connection closed unexpectedly. Reconnecting...")
@@ -129,7 +128,7 @@ def reset():
 
 def reset_status_loop():
     send_status(alternate_status)
-    print("set status to alternate")
+    print("Set status to 'alternate'")
 
 def send_status(status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
