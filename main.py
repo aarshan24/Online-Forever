@@ -2,13 +2,13 @@ import os
 import sys
 import json
 import time
+import requests
 import threading
 import websocket
-from flask import Flask
-
-app = Flask(__name__)
+from keep_alive import keep_alive
 
 status = "online"  # online/dnd/idle
+
 custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
 
@@ -16,6 +16,18 @@ token = os.getenv('TOKEN')
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
+
+headers = {"Authorization": token, "Content-Type": "application/json"}
+
+validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
+if validate.status_code != 200:
+    print("[ERROR] Your token might be invalid. Please check it again.")
+    sys.exit()
+
+userinfo = validate.json()
+username = userinfo["username"]
+discriminator = userinfo["discriminator"]
+userid = userinfo["id"]
 
 def on_message(ws, message):
     print("Received:", message)
@@ -28,7 +40,6 @@ def on_close(ws):
 
 def on_open(ws):
     print("WebSocket connection opened")
-    threading.Thread(target=update_status, daemon=True).start()
 
     auth_payload = {
         "op": 2,
@@ -45,48 +56,59 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-def update_status():
-    global status
+    def update_status():
+        while True:
+            # Send "bro what" status
+            cstatus_payload = {
+                "op": 3,
+                "d": {
+                    "since": 0,
+                    "activities": [
+                        {
+                            "type": 4,
+                            "state": alternate_status,
+                            "name": "Custom Status",
+                            "id": "custom",
+                        }
+                    ],
+                    "status": status,
+                    "afk": False,
+                },
+            }
+            ws.send(json.dumps(cstatus_payload))
+            time.sleep(1)
 
-    while True:
-        # Send "bro what" status
-        send_status(alternate_status)
-        time.sleep(1)
+            # Send "discord.gg/permfruits" status
+            cstatus_payload["d"]["activities"][0]["state"] = custom_status
+            ws.send(json.dumps(cstatus_payload))
+            time.sleep(59)
 
-        # Send "discord.gg/permfruits" status
-        send_status(custom_status)
-        time.sleep(59)
+    threading.Thread(target=update_status, daemon=True).start()
 
-def send_status(new_status):
-    global status
+def onliner(token, status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
 
-    cstatus_payload = {
-        "op": 3,
-        "d": {
-            "since": 0,
-            "activities": [
-                {
-                    "type": 4,
-                    "state": new_status,
-                    "name": "Custom Status",
-                    "id": "custom",
-                }
-            ],
-            "status": status,
-            "afk": False,
-        },
-    }
+def run_onliner():
+    print(f"Logged in as {username}#{discriminator} ({userid}).")
+    while True:
+        onliner(token, status)
+        time.sleep(30)
 
-    ws.send(json.dumps(cstatus_payload))
-    ws.close()
+def lock_file_exists():
+    lock_file_path = "/tmp/discord_status_lock"
+    return os.path.exists(lock_file_path)
 
-@app.route("/reset")
-def reset_status():
-    threading.Thread(target=update_status, daemon=True).start()
-    return "Status reset"
+def run_script():
+    if lock_file_exists():
+        print("Another instance of the script is already running. Exiting.")
+        return
+    try:
+        open("/tmp/discord_status_lock", 'a').close()  # Create lock file
+        keep_alive()
+        run_onliner()
+    finally:
+        os.remove("/tmp/discord_status_lock")  # Remove lock file
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+run_script()
