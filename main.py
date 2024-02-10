@@ -2,13 +2,12 @@ import os
 import sys
 import json
 import time
-import requests
 import threading
 import websocket
+import requests
 from keep_alive import keep_alive
 
 status = "online"  # online/dnd/idle
-
 custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
 
@@ -40,6 +39,7 @@ def on_close(ws):
 
 def on_open(ws):
     print("WebSocket connection opened")
+    threading.Thread(target=update_status, daemon=True).start()
 
     auth_payload = {
         "op": 2,
@@ -56,39 +56,49 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-    def update_status():
-        while True:
-            # Send "bro what" status
-            cstatus_payload = {
-                "op": 3,
-                "d": {
-                    "since": 0,
-                    "activities": [
-                        {
-                            "type": 4,
-                            "state": alternate_status,
-                            "name": "Custom Status",
-                            "id": "custom",
-                        }
-                    ],
-                    "status": status,
-                    "afk": False,
-                },
-            }
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(1)
+def update_status():
+    global status
 
-            # Send "discord.gg/permfruits" status
-            cstatus_payload["d"]["activities"][0]["state"] = custom_status
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(59)
+    while True:
+        # Send "bro what" status
+        send_status(alternate_status)
+        time.sleep(1)
 
-    threading.Thread(target=update_status, daemon=True).start()
+        # Send "discord.gg/permfruits" status
+        send_status(custom_status)
+        time.sleep(59)
 
-def onliner(token, status):
+def send_status(new_status):
+    global status
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
+
+    cstatus_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": new_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
+    }
+
+    ws.send(json.dumps(cstatus_payload))
+    ws.close()
+
+def ignore_cronjobs():
+    # Sleep for 750 hours (in seconds)
+    sleep_duration = 750 * 3600  # 750 hours * 3600 seconds/hour
+    print(f"Ignoring cronjobs for {sleep_duration / 3600} hours...")
+    time.sleep(sleep_duration)
 
 def run_onliner():
     print(f"Logged in as {username}#{discriminator} ({userid}).")
@@ -101,15 +111,16 @@ def lock_file_exists():
     return os.path.exists(lock_file_path)
 
 def run_script():
-    lock_file_path = "/tmp/discord_status_lock"
+    if lock_file_exists():
+        print("Another instance of the script is already running. Exiting.")
+        return
     try:
-        if lock_file_exists():
-            print("Another instance of the script is already running. Exiting.")
-            return
-        open(lock_file_path, 'w').close()  # Create lock file
+        open("/tmp/discord_status_lock", 'a').close()  # Create lock file
         keep_alive()
         run_onliner()
     finally:
-        os.remove(lock_file_path)  # Remove lock file
+        os.remove("/tmp/discord_status_lock")  # Remove lock file
 
-run_script()
+if __name__ == "__main__":
+    threading.Thread(target=ignore_cronjobs, daemon=True).start()
+    run_script()
