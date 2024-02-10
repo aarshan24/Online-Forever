@@ -32,15 +32,17 @@ discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
 def on_message(ws, message):
-    pass
+    print("Received:", message)
 
 def on_error(ws, error):
-    pass
+    print("Error:", error)
 
 def on_close(ws):
     print("WebSocket connection closed")
 
 def on_open(ws):
+    print("WebSocket connection opened")
+
     auth_payload = {
         "op": 2,
         "d": {
@@ -111,43 +113,35 @@ def run_script():
     finally:
         os.remove("/tmp/discord_status_lock")  # Remove lock file
 
-def send_status(ws, custom_status):
-    print(f"Sending alternate status: {custom_status}")
-    cstatus_payload = {
-        "op": 3,
-        "d": {
-            "since": 0,
-            "activities": [
-                {
-                    "type": 4,
-                    "state": custom_status,
-                    "name": "Custom Status",
-                    "id": "custom",
-                }
-            ],
-            "status": status,
-            "afk": False,
-        },
-    }
-    ws.send(json.dumps(cstatus_payload))
-
-def reset_status_loop(ws):
-    print("Status update loop reset")
-    send_status(ws, alternate_status)
-    time.sleep(1)
-    send_status(ws, custom_status)
-
 @app.route('/')
 def main():
-    return 'I am alive'
+    return 'I am alive'  # Return a simple response
 
 @app.route('/reset')
 def reset():
+    reset_status_loop()
+    return 'Status update loop reset'  # Return a message indicating the loop is reset
+
+def reset_status_loop():
+    send_status(alternate_status)
+
+def send_status(status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-    ws.run_forever()
-    reset_status_loop(ws)
-    return 'Status update loop reset'
+    ws = websocket.create_connection(ws_url)
+    auth_payload = {
+        "op": 2,
+        "d": {
+            "token": token,
+            "properties": {
+                "$os": "Windows 10",
+                "$browser": "Google Chrome",
+                "$device": "Windows",
+            },
+            "presence": {"status": status, "afk": False},
+        }
+    }
+    ws.send(json.dumps(auth_payload))
+    ws.close()
 
 def run():
     app.run(host="0.0.0.0", port=8080)
@@ -156,4 +150,5 @@ def keep_alive():
     server = Thread(target=run)
     server.start()
 
-run_script()
+if __name__ == "__main__":
+    run_script()
