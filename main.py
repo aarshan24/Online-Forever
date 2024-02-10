@@ -27,13 +27,12 @@ def on_message(ws, message):
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(ws, *args):
+def on_close(ws):
     print("WebSocket connection closed")
     global ws
     ws = None  # Reset WebSocket connection
 
 def on_open(ws):
-    global ws  # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -52,7 +51,6 @@ def on_open(ws):
     ws.send(json.dumps(auth_payload))
 
     def update_status():
-        global ws  # Declare ws as global within this function
         while True:
             if ws is None or not ws.sock or not ws.sock.connected:
                 print("WebSocket connection is closed. Reconnecting...")
