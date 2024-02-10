@@ -30,6 +30,8 @@ username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
+ws = None  # Declare ws as a global variable
+
 def on_message(ws, message):
     pass
 
@@ -58,6 +60,8 @@ def on_open(ws):
     ws.send(json.dumps(auth_payload))
 
     def update_status():
+        global ws  # Access the global ws variable
+
         while True:
             try:
                 # Send "bro what" status
@@ -94,6 +98,7 @@ def on_open(ws):
     threading.Thread(target=update_status, daemon=True).start()
 
 def onliner(token, status):
+    global ws  # Access the global ws variable
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
