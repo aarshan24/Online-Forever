@@ -5,7 +5,7 @@ import time
 import requests
 import threading
 import websocket
-from flask import Flask, request
+from flask import Flask
 from threading import Thread
 
 app = Flask('')
@@ -38,7 +38,9 @@ def on_error(ws, error):
     pass
 
 def on_close(ws):
-    pass
+    print("WebSocket connection closed. Attempting to reconnect...")
+    time.sleep(5)  # Wait for a few seconds before attempting to reconnect
+    onliner(token, status)
 
 def on_open(ws):
     print("WebSocket connection opened")
