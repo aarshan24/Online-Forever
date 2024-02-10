@@ -30,7 +30,7 @@ userid = userinfo["id"]
 ws = None
 
 def on_message(ws, message):
-    print("Received:", message)
+    pass
 
 def on_error(ws, error):
     print("Error:", error)
