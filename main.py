@@ -1,11 +1,10 @@
-from flask import Flask
-from threading import Thread
+from flask import Flask, request
+from threading import Thread, Semaphore
 import os
 import json
 import time
 import threading
 import websocket
-import sys  # Import sys module
 
 app = Flask('')
 
@@ -14,6 +13,7 @@ custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
 token = os.getenv('TOKEN')
 ws = None  # Global variable to hold WebSocket connection
+semaphore = Semaphore(2)  # Semaphore to limit the number of active threads
 
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
@@ -27,12 +27,11 @@ def on_message(ws, message):
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(ws):
+def on_close(ws, *args):
     print("WebSocket connection closed")
-    global ws
-    ws = None  # Reset WebSocket connection
 
 def on_open(ws):
+    global ws  # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -50,7 +49,7 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-    def update_status():
+    def update_status(ws):
         while True:
             if ws is None or not ws.sock or not ws.sock.connected:
                 print("WebSocket connection is closed. Reconnecting...")
@@ -79,7 +78,7 @@ def on_open(ws):
             print("Sent custom status")
             time.sleep(59)
 
-    threading.Thread(target=update_status, daemon=True).start()
+    threading.Thread(target=update_status, args=(ws,), daemon=True).start()
 
 def onliner(token, status):
     global ws
@@ -102,12 +101,21 @@ def reset_loop():
 
 @app.route("/reset")
 def reset_status():
+    # Check if request is from a cronjob or automated task
+    user_agent = request.headers.get('User-Agent')
+    print("User-Agent:", user_agent)  # Print the User-Agent
+    if 'cron' in user_agent.lower() or 'automated' in user_agent.lower():
+        print("Ignoring reset request from cronjob or automated task")
+        return "Ignored"
+    
     threading.Thread(target=reset_loop, daemon=True).start()
     print("Reset flag set to True")
     return "Status reset"
 
 def run():
+    semaphore.acquire()
     app.run(host="0.0.0.0", port=8080)
+    semaphore.release()
 
 def keep_alive():
     server = Thread(target=run)
