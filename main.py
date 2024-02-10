@@ -6,7 +6,6 @@ import requests
 import threading
 import websocket
 from flask import Flask
-from threading import Thread
 
 app = Flask('')
 
@@ -144,10 +143,10 @@ def send_status(status):
     ws.close()
 
 def run():
-    app.run(host="0.0.0.0", port=8080)
+    app.run(host="0.0.0.0", port=8080, debug=False)  # Set debug=False for production
 
 def keep_alive():
-    server = Thread(target=run)
+    server = threading.Thread(target=run)
     server.start()
 
 if __name__ == "__main__":
