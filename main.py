@@ -33,8 +33,9 @@ ws = None
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(ws, *args):
-    print("WebSocket connection closed")
+def on_close(ws):
+    print("WebSocket connection closed. Reconnecting...")
+    connect_ws()
 
 def on_open(ws):
     print("WebSocket connection opened")
@@ -56,10 +57,14 @@ def on_open(ws):
     print("Sending auth payload:", auth_payload)
     ws.send(json.dumps(auth_payload))
 
+def connect_ws():
+    global ws
+    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=lambda ws, message: None, on_error=on_error, on_close=on_close)
+    ws.run_forever()
+
 def update_status():
     global status
-    global ws
-
     while True:
         print("Sending alternate status:", alternate_status)
         send_status(alternate_status)
@@ -71,8 +76,6 @@ def update_status():
 
 def send_status(new_status):
     global status
-    global ws
-
     cstatus_payload = {
         "op": 3,
         "d": {
@@ -95,9 +98,6 @@ def send_status(new_status):
 
 def run_onliner():
     keep_alive()
-    global ws
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=lambda ws, message: None, on_error=on_error, on_close=on_close)
-    ws.run_forever()
+    connect_ws()
 
 run_onliner()
