@@ -57,7 +57,7 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-    def update_status(ws):
+    def update_status(ws_url):
         while True:
             try:
                 # Send "bro what" status
@@ -77,6 +77,7 @@ def on_open(ws):
                         "afk": False,
                     },
                 }
+                ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
                 ws.send(json.dumps(cstatus_payload))
                 print("status changed to bro what")
                 time.sleep(1)
@@ -88,10 +89,8 @@ def on_open(ws):
                 time.sleep(59)
             except websocket.WebSocketConnectionClosedException:
                 print("WebSocket connection closed unexpectedly. Reconnecting...")
-                ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-                ws.run_forever()
 
-    threading.Thread(target=update_status, args=(ws,), daemon=True).start()
+    threading.Thread(target=update_status, args=(ws_url,), daemon=True).start()
 
 def onliner(token, status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
