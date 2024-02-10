@@ -57,7 +57,7 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-    def update_status(ws_url):
+    def update_status(ws):
         while True:
             try:
                 # Send "bro what" status
@@ -91,7 +91,7 @@ def on_open(ws):
                 ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
                 ws.run_forever()
 
-    threading.Thread(target=update_status, args=("wss://gateway.discord.gg/?v=9&encoding=json",), daemon=True).start()
+    threading.Thread(target=update_status, args=(ws,), daemon=True).start()
 
 def onliner(token, status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
