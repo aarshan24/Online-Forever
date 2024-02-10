@@ -1,16 +1,14 @@
-from flask import Flask
-from threading import Thread
 import os
 import json
 import time
 import threading
 import websocket
+from flask import Flask
 
 app = Flask('')
 
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
-alternate_status = "bro what"
 
 token = os.getenv('TOKEN')
 if not token:
@@ -72,7 +70,7 @@ def on_open(ws):
     threading.Thread(target=update_status, daemon=True).start()
 
 def onliner(token, status):
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws_url = "wss://gateway.discord.gg/?v=10&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
 
@@ -99,7 +97,7 @@ def run():
     app.run(host="0.0.0.0", port=8080)
 
 def keep_alive():
-    server = Thread(target=run)
+    server = threading.Thread(target=run)
     server.start()
 
 if __name__ == "__main__":
