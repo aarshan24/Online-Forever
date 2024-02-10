@@ -92,7 +92,7 @@ def on_open(ws):
                 else:
                     ws.send(json.dumps(cstatus_payload))
                     print("Sent custom status")
-                time.sleep(59)
+                time.sleep(60)  # Send custom status every minute
             except Exception as e:
                 print("Error sending custom status:", e)
                 time.sleep(10)  # Retry after 10 seconds
