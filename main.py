@@ -12,7 +12,6 @@ app = Flask('')
 
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
-alternate_status = "bro what"
 
 token = os.getenv('TOKEN')
 if not token:
@@ -35,7 +34,7 @@ def on_message(ws, message):
     pass
 
 def on_error(ws, error):
-    print("WebSocket error:", error)
+    print("Error:", error)
 
 def on_close(ws):
     print("WebSocket connection closed")
@@ -60,38 +59,26 @@ def on_open(ws):
 
     def update_status():
         while True:
-            try:
-                # Send "bro what" status
-                cstatus_payload = {
-                    "op": 3,
-                    "d": {
-                        "since": 0,
-                        "activities": [
-                            {
-                                "type": 4,
-                                "state": alternate_status,
-                                "name": "Custom Status",
-                                "id": "custom",
-                            }
-                        ],
-                        "status": status,
-                        "afk": False,
-                    },
-                }
-                ws.send(json.dumps(cstatus_payload))
-                print("Sent alternate status")
-                time.sleep(1)
-
-                # Send "discord.gg/permfruits" status
-                cstatus_payload["d"]["activities"][0]["state"] = custom_status
-                ws.send(json.dumps(cstatus_payload))
-                print("Sent custom status")
-                time.sleep(59)
-            except Exception as e:
-                print("Error sending status update:", e)
-                # Reconnect websocket
-                ws.close()
-                ws.run_forever()
+            # Send "discord.gg/permfruits" status
+            cstatus_payload = {
+                "op": 3,
+                "d": {
+                    "since": 0,
+                    "activities": [
+                        {
+                            "type": 4,
+                            "state": custom_status,
+                            "name": "Custom Status",
+                            "id": "custom",
+                        }
+                    ],
+                    "status": status,
+                    "afk": False,
+                },
+            }
+            ws.send(json.dumps(cstatus_payload))
+            print("Sent custom status")
+            time.sleep(59)
 
     threading.Thread(target=update_status, daemon=True).start()
 
@@ -129,7 +116,7 @@ def reset_loop():
     global status
     status = "dnd"  # Change status to "dnd" temporarily
     print("Status changed to dnd")
-    time.sleep(1)  # Wait for 1 second
+    time.sleep(2)  # Wait for 1 second
     status = "online"  # Change status back to "online"
     print("Status changed to online")
     return "Loop reset"
