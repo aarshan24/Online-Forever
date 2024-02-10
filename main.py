@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask
 from threading import Thread
 import os
 import json
@@ -11,9 +11,8 @@ app = Flask('')
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
-token = os.getenv('TOKEN')
-ws = None  # Global variable to hold WebSocket connection
 
+token = os.getenv('TOKEN')
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
@@ -31,6 +30,7 @@ def on_close(ws, *args):
 
 def on_open(ws):
     print("WebSocket connection opened")
+
     auth_payload = {
         "op": 2,
         "d": {
@@ -46,39 +46,32 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-    threading.Thread(target=update_status, args=(ws,), daemon=True).start()
+    def update_status():
+        while True:
+            # Send custom status
+            cstatus_payload = {
+                "op": 3,
+                "d": {
+                    "since": 0,
+                    "activities": [
+                        {
+                            "type": 4,
+                            "state": custom_status,
+                            "name": "Custom Status",
+                            "id": "custom",
+                        }
+                    ],
+                    "status": status,
+                    "afk": False,
+                },
+            }
+            ws.send(json.dumps(cstatus_payload))
+            print("Sent custom status")
+            time.sleep(59)
 
-def update_status(ws):
-    while True:
-        if ws is None or not ws.sock or not ws.sock.connected:
-            print("WebSocket connection is closed. Reconnecting...")
-            onliner(token, status)
-            time.sleep(5)  # Wait before attempting to send status
-            continue
-
-        # Send custom status
-        cstatus_payload = {
-            "op": 3,
-            "d": {
-                "since": 0,
-                "activities": [
-                    {
-                        "type": 4,
-                        "state": custom_status,
-                        "name": "Custom Status",
-                        "id": "custom",
-                    }
-                ],
-                "status": status,
-                "afk": False,
-            },
-        }
-        ws.send(json.dumps(cstatus_payload))
-        print("Sent custom status")
-        time.sleep(59)
+    threading.Thread(target=update_status, daemon=True).start()
 
 def onliner(token, status):
-    global ws
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
@@ -98,13 +91,6 @@ def reset_loop():
 
 @app.route("/reset")
 def reset_status():
-    # Check if request is from a cronjob or automated task
-    user_agent = request.headers.get('User-Agent')
-    print("User-Agent:", user_agent)  # Print the User-Agent
-    if 'cron' in user_agent.lower() or 'automated' in user_agent.lower():
-        print("Ignoring reset request from cronjob or automated task")
-        return "Ignored"
-    
     threading.Thread(target=reset_loop, daemon=True).start()
     print("Reset flag set to True")
     return "Status reset"
@@ -119,3 +105,5 @@ def keep_alive():
 if __name__ == "__main__":
     keep_alive()
     run_onliner()
+
+
