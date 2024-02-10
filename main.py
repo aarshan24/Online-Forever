@@ -58,6 +58,7 @@ def on_open(ws):
     ws.send(json.dumps(auth_payload))
 
     def update_status(ws_url):
+        print("Starting status update loop...")
         while True:
             try:
                 # Send "bro what" status
