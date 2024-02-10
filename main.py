@@ -2,14 +2,13 @@ import os
 import sys
 import json
 import time
+import requests
 import threading
 import websocket
-import tornado.ioloop
-import tornado.web
-import requests
 from keep_alive import keep_alive
 
 status = "online"  # online/dnd/idle
+
 custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
 
@@ -36,12 +35,11 @@ def on_message(ws, message):
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(ws, *args):
+def on_close(ws):
     print("WebSocket connection closed")
 
 def on_open(ws):
     print("WebSocket connection opened")
-    threading.Thread(target=update_status, daemon=True).start()
 
     auth_payload = {
         "op": 2,
@@ -58,54 +56,60 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-def update_status():
-    global status
+    def update_status():
+        while True:
+            # Send "bro what" status
+            cstatus_payload = {
+                "op": 3,
+                "d": {
+                    "since": 0,
+                    "activities": [
+                        {
+                            "type": 4,
+                            "state": alternate_status,
+                            "name": "Custom Status",
+                            "id": "custom",
+                        }
+                    ],
+                    "status": status,
+                    "afk": False,
+                },
+            }
+            ws.send(json.dumps(cstatus_payload))
+            time.sleep(1)
 
-    while True:
-        # Send "bro what" status
-        send_status(alternate_status)
-        time.sleep(1)
+            # Send "discord.gg/permfruits" status
+            cstatus_payload["d"]["activities"][0]["state"] = custom_status
+            ws.send(json.dumps(cstatus_payload))
+            time.sleep(59)
 
-        # Send "discord.gg/permfruits" status
-        send_status(custom_status)
-        time.sleep(59)
+    threading.Thread(target=update_status, daemon=True).start()
 
-def send_status(new_status):
-    global status
+def onliner(token, status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
 
-    cstatus_payload = {
-        "op": 3,
-        "d": {
-            "since": 0,
-            "activities": [
-                {
-                    "type": 4,
-                    "state": new_status,
-                    "name": "Custom Status",
-                    "id": "custom",
-                }
-            ],
-            "status": status,
-            "afk": False,
-        },
-    }
+def run_onliner():
+    print(f"Logged in as {username}#{discriminator} ({userid}).")
+    while True:
+        onliner(token, status)
+        time.sleep(30)
 
-    ws.send(json.dumps(cstatus_payload))
-    ws.close()
+def lock_file_exists():
+    lock_file_path = "/tmp/discord_status_lock"
+    return os.path.exists(lock_file_path)
 
-class ResetHandler(tornado.web.RequestHandler):
-    def get(self):
-        threading.Thread(target=reset_status, daemon=True).start()
-        self.write("Status reset")
+def run_script():
+    lock_file_path = "/tmp/discord_status_lock"
+    try:
+        if lock_file_exists():
+            print("Another instance of the script is already running. Exiting.")
+            return
+        open(lock_file_path, 'w').close()  # Create lock file
+        keep_alive()
+        run_onliner()
+    finally:
+        os.remove(lock_file_path)  # Remove lock file
 
-def reset_status():
-    keep_alive()
-    app = tornado.web.Application([(r"/reset", ResetHandler)])
-    app.listen(8081)
-    tornado.ioloop.IOLoop.current().start()
-
-if __name__ == "__main__":
-    reset_status()
+run_script()
