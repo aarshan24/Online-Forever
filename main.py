@@ -12,13 +12,13 @@ status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
 token = os.getenv('TOKEN')
+ws = None  # Global variable to hold WebSocket connection
 
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
 headers = {"Authorization": token, "Content-Type": "application/json"}
-ws = None  # Global variable to hold WebSocket connection
 
 def on_message(ws, message):
     pass
