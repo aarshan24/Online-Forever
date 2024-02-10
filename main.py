@@ -11,8 +11,8 @@ app = Flask('')
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
-
 token = os.getenv('TOKEN')
+
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
