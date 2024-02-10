@@ -65,7 +65,7 @@ def on_open(ws):
     ws.send(json.dumps(auth_payload))
 
 def update_status():
-    global status, reset_request_received, ws
+    global status, reset_request_received
     while True:
         # Check if a reset request was received
         if reset_request_received:
