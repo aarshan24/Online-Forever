@@ -1,11 +1,13 @@
 import os
+import sys
 import json
 import time
 import threading
 import websocket
-import requests
+from keep_alive import keep_alive
 
 status = "online"  # online/dnd/idle
+
 custom_status = "discord.gg/permfruits"  # Custom status
 alternate_status = "bro what"
 
@@ -15,19 +17,6 @@ if not token:
     sys.exit()
 
 headers = {"Authorization": token, "Content-Type": "application/json"}
-
-validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
-if validate.status_code != 200:
-    print("[ERROR] Your token might be invalid. Please check it again.")
-    sys.exit()
-
-userinfo = validate.json()
-username = userinfo["username"]
-discriminator = userinfo["discriminator"]
-userid = userinfo["id"]
-
-# Variable to track whether to ignore cronjob requests
-ignore_cronjobs_until = time.time() + (31 * 24 * 60 * 60)  # 31 days
 
 def on_message(ws, message):
     print("Received:", message)
@@ -58,12 +47,6 @@ def on_open(ws):
 
     def update_status():
         while True:
-            # Check if it's time to ignore cronjobs
-            if time.time() < ignore_cronjobs_until:
-                print("Ignoring cronjob requests...")
-                time.sleep(60)  # Sleep for 1 minute
-                continue
-
             # Send "bro what" status
             cstatus_payload = {
                 "op": 3,
@@ -97,10 +80,8 @@ def onliner(token, status):
     ws.run_forever()
 
 def run_onliner():
-    print(f"Logged in as {username}#{discriminator} ({userid}).")
-    while True:
-        onliner(token, status)
-        time.sleep(30)
+    print("Running online status update loop...")
+    onliner(token, status)
 
 def lock_file_exists():
     lock_file_path = "/tmp/discord_status_lock"
@@ -112,6 +93,7 @@ def run_script():
         return
     try:
         open("/tmp/discord_status_lock", 'a').close()  # Create lock file
+        keep_alive()
         run_onliner()
     finally:
         os.remove("/tmp/discord_status_lock")  # Remove lock file
