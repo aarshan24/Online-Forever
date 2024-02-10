@@ -38,7 +38,7 @@ def on_error(ws, error):
     pass
 
 def on_close(ws):
-    pass
+    print("WebSocket connection closed")
 
 def on_open(ws):
     auth_payload = {
@@ -111,7 +111,7 @@ def run_script():
     finally:
         os.remove("/tmp/discord_status_lock")  # Remove lock file
 
-def send_status(custom_status):
+def send_status(ws, custom_status):
     print(f"Sending alternate status: {custom_status}")
     cstatus_payload = {
         "op": 3,
@@ -131,11 +131,11 @@ def send_status(custom_status):
     }
     ws.send(json.dumps(cstatus_payload))
 
-def reset_status_loop():
+def reset_status_loop(ws):
     print("Status update loop reset")
-    send_status(alternate_status)
+    send_status(ws, alternate_status)
     time.sleep(1)
-    send_status(custom_status)
+    send_status(ws, custom_status)
 
 @app.route('/')
 def main():
@@ -143,7 +143,10 @@ def main():
 
 @app.route('/reset')
 def reset():
-    reset_status_loop()
+    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
+    ws.run_forever()
+    reset_status_loop(ws)
     return 'Status update loop reset'
 
 def run():
