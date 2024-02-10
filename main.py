@@ -33,7 +33,7 @@ ws = None  # Global WebSocket connection
 reset_request_received = False  # Flag to indicate a reset request
 
 def on_message(ws, message):
-    pass
+    print("Received:", message)
 
 def on_error(ws, error):
     print("Error:", error)
@@ -65,7 +65,7 @@ def on_open(ws):
     ws.send(json.dumps(auth_payload))
 
 def update_status():
-    global status, reset_request_received
+    global status, reset_request_received, ws
     while True:
         # Check if a reset request was received
         if reset_request_received:
@@ -98,7 +98,8 @@ def send_status(new_status):
             "afk": False,
         },
     }
-    ws.send(json.dumps(cstatus_payload))
+    if ws and ws.sock and ws.sock.connected:
+        ws.send(json.dumps(cstatus_payload))
 
 def run_script():
     global ws
