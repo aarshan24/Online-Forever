@@ -28,13 +28,12 @@ username = userinfo["username"]
 discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
-def on_message(ws, message):
-    pass
+ws = None
 
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(*args):
+def on_close(ws, *args):
     print("WebSocket connection closed")
 
 def on_open(ws):
@@ -59,6 +58,7 @@ def on_open(ws):
 
 def update_status():
     global status
+    global ws
 
     while True:
         print("Sending alternate status:", alternate_status)
@@ -71,9 +71,7 @@ def update_status():
 
 def send_status(new_status):
     global status
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-    ws.run_forever()
+    global ws
 
     cstatus_payload = {
         "op": 3,
@@ -94,11 +92,12 @@ def send_status(new_status):
 
     print("Sending custom status payload:", cstatus_payload)
     ws.send(json.dumps(cstatus_payload))
-    ws.close()
 
 def run_onliner():
     keep_alive()
-    while True:
-        update_status()
+    global ws
+    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
+    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=lambda ws, message: None, on_error=on_error, on_close=on_close)
+    ws.run_forever()
 
 run_onliner()
