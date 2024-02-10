@@ -5,9 +5,6 @@ import time
 import threading
 import websocket
 import requests
-from flask import Flask
-
-app = Flask(__name__)
 
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
@@ -33,7 +30,7 @@ userid = userinfo["id"]
 ws = None
 
 def on_message(ws, message):
-    pass
+    print("Received:", message)
 
 def on_error(ws, error):
     print("Error:", error)
@@ -43,61 +40,62 @@ def on_close(ws, *args):
 
 def on_open(ws):
     print("WebSocket connection opened")
-
-    def update_status():
-        global status
-
-        while True:
-            # Send "bro what" status
-            send_status(alternate_status)
-            time.sleep(1)
-
-            # Send "discord.gg/permfruits" status
-            send_status(custom_status)
-            time.sleep(59)
-
     threading.Thread(target=update_status, daemon=True).start()
+
+    auth_payload = {
+        "op": 2,
+        "d": {
+            "token": token,
+            "properties": {
+                "$os": "Windows 10",
+                "$browser": "Google Chrome",
+                "$device": "Windows",
+            },
+            "presence": {"status": status, "afk": False},
+        }
+    }
+
+    ws.send(json.dumps(auth_payload))
+
+def update_status():
+    global status, ws
+    while True:
+        # Send "bro what" status
+        send_status(alternate_status)
+        time.sleep(1)
+
+        # Send "discord.gg/permfruits" status
+        send_status(custom_status)
+        time.sleep(59)
 
 def send_status(new_status):
     global status, ws
-    if ws is None:
+    if ws is None or not ws.sock or not ws.sock.connected:
         ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
         ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
         ws.run_forever()
 
-    cstatus_payload = {
-        "op": 3,
-        "d": {
-            "since": 0,
-            "activities": [
-                {
-                    "type": 4,
-                    "state": new_status,
-                    "name": "Custom Status",
-                    "id": "custom",
-                }
-            ],
-            "status": status,
-            "afk": False,
-        },
-    }
+    if ws.sock and ws.sock.connected:
+        cstatus_payload = {
+            "op": 3,
+            "d": {
+                "since": 0,
+                "activities": [
+                    {
+                        "type": 4,
+                        "state": new_status,
+                        "name": "Custom Status",
+                        "id": "custom",
+                    }
+                ],
+                "status": status,
+                "afk": False,
+            },
+        }
 
-    ws.send(json.dumps(cstatus_payload))
-
-@app.route("/")
-def home():
-    return "Discord Status Bot"
-
-@app.route("/reset")
-def reset_status():
-    print("Resetting status...")
-    send_status(alternate_status)
-    time.sleep(1)
-    send_status(custom_status)
-    return "Status reset"
-
-def keep_alive():
-    app.run(host="0.0.0.0", port=8080)
+        ws.send(json.dumps(cstatus_payload))
+    else:
+        print("WebSocket connection is closed. Unable to send status update.")
 
 if __name__ == "__main__":
-    keep_alive()
+    update_status()
