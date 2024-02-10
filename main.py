@@ -36,7 +36,7 @@ def on_message(ws, message):
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(ws, *args):
+def on_close(ws):
     print("WebSocket connection closed unexpectedly")
     # Reconnect WebSocket
     onliner(token, status)
