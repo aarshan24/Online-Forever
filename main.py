@@ -27,7 +27,6 @@ def on_error(ws, error):
 
 def on_close(ws, *args):
     print("WebSocket connection closed")
-    # Do not set ws to None here
 
 def on_open(ws):
     global ws  # Declare ws as global within this function
@@ -80,7 +79,7 @@ def on_open(ws):
     threading.Thread(target=update_status, daemon=True).start()
 
 def onliner(token, status):
-    global ws
+    global ws  # Declare ws as global within this function
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
