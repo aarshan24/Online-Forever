@@ -30,8 +30,7 @@ def on_close(ws, *args):
     ws = None  # Reset WebSocket connection
     reset_status()  # Reset status when WebSocket connection closes
 
-def on_open(ws):
-    global ws  # Declare ws as global within this function
+def on_open(ws):  # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
