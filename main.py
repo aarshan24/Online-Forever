@@ -6,8 +6,7 @@ import time
 import threading
 import websocket
 
-app = Flask(__name__, template_folder='.')
-
+app = Flask('')
 
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
@@ -49,9 +48,9 @@ def on_open(ws):
     }
 
     ws.send(json.dumps(auth_payload))
-    update_status()  # Set custom status when WebSocket connection opens
+    update_status(ws)  # Set custom status when WebSocket connection opens
 
-def update_status():
+def update_status(ws):
     if ws is None or not ws.sock or not ws.sock.connected:
         return  # If WebSocket connection is not open, do nothing
 
@@ -92,7 +91,7 @@ def reset_status():
     time.sleep(1)  # Wait for 1 second
     status = "online"  # Change status back to "online"
     print("Status changed to online")
-    update_status()  # Reset custom status when status is reset
+    update_status(ws)  # Reset custom status when status is reset
 
 @app.route("/")
 def keep_alive():
@@ -108,24 +107,6 @@ def admin():
         else:
             return render_template("login.html", message="Invalid credentials")
     return render_template("login.html", message="")
-
-@app.route("/execute-command", methods=["POST"])
-def execute_command():
-    command = request.form.get("command")
-    if command.startswith("cstatus"):
-        _, new_custom_status = command.split(" ", 1)
-        global custom_status
-        custom_status = new_custom_status.strip()
-        update_status()
-    elif command == "dnd":
-        global status
-        status = "dnd"
-        update_status()
-    elif command == "online":
-        global status
-        status = "online"
-        update_status()
-    return "Command executed successfully"
 
 def run():
     app.run(host="0.0.0.0", port=8080)
