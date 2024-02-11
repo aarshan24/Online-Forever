@@ -45,16 +45,39 @@ def on_open(ws):
     }
 
     ws.send(json.dumps(auth_payload))
-    print("Sent initial status and custom status")
+    update_status()
+
+def update_status():
+    # Send "discord.gg/permfruits" status
+    cstatus_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": custom_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
+    }
+    ws.send(json.dumps(cstatus_payload))
+    print("Sent custom status")
 
 def onliner(token, status):
-    global ws  # Declare ws as global within this function
+    global ws
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
 
 def run_onliner():
-    onliner(token, status)
+    while True:
+        onliner(token, status)
+        time.sleep(30)
 
 def reset_loop():
     global status
@@ -63,12 +86,8 @@ def reset_loop():
     time.sleep(1)  # Wait for 1 second
     status = "online"  # Change status back to "online"
     print("Status changed to online")
-    ws.close()
 
 @app.route("/")
-def home():
-    return "Hello, this is the home page!"
-
 @app.route("/reset")
 def reset_status():
     threading.Thread(target=reset_loop, daemon=True).start()
