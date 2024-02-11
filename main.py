@@ -115,13 +115,13 @@ def execute_command():
         elif command == "dnd":
             global status
             status = "dnd"
+            update_status()
         elif command == "online":
             global status
             status = "online"
-        update_status()
+            update_status()
         return "Command executed successfully"
     return render_template("admin_panel.html")
-
 
 def run():
     app.run(host="0.0.0.0", port=8080)
