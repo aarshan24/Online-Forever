@@ -3,9 +3,9 @@ from threading import Thread
 import os
 import json
 import time
+import threading
 import websocket
-import logging
-from tenacity import retry, stop_after_delay, wait_fixed
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 app = Flask('')
 
@@ -15,30 +15,24 @@ token = os.getenv('TOKEN')
 ws = None  # Global variable to hold WebSocket connection
 
 if not token:
-    logging.error("[ERROR] Please add a token inside Secrets.")
+    print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
 headers = {"Authorization": token, "Content-Type": "application/json"}
 
-@retry(stop=stop_after_delay(5), wait=wait_fixed(2))
 def on_message(ws, message):
     pass
 
-@retry(stop=stop_after_delay(5), wait=wait_fixed(2))
 def on_error(ws, error):
-    logging.error("WebSocket error: %s", error)
+    print("Error:", error)
 
-@retry(stop=stop_after_delay(5), wait=wait_fixed(2))
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
 def on_close(ws, *args):
-    logging.warning("WebSocket connection closed")
-    ws = None  # Reset WebSocket connection
-    time.sleep(5)  # Wait before attempting to reconnect
-    onliner(token, status)  # Reconnect WebSocket
+    print("WebSocket connection closed")
+    onliner(token, status)
 
-@retry(stop=stop_after_delay(5), wait=wait_fixed(2))
 def on_open(ws):
-    # Declare ws as global within this function
-    logging.info("WebSocket connection opened")
+    print("WebSocket connection opened")
 
     auth_payload = {
         "op": 2,
@@ -55,12 +49,10 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-def update_status():
-    global ws  # Declare ws as global within this function
-    while True:
-        try:
+    def update_status():
+        while True:
             if ws is None or not ws.sock or not ws.sock.connected:
-                logging.warning("WebSocket connection is closed. Reconnecting...")
+                print("WebSocket connection is closed. Reconnecting...")
                 onliner(token, status)
                 time.sleep(5)  # Wait before attempting to send status
                 continue
@@ -83,10 +75,10 @@ def update_status():
                 },
             }
             ws.send(json.dumps(cstatus_payload))
-            logging.info("Sent custom status")
-        except Exception as e:
-            logging.error("Error updating status: %s", e)
-            time.sleep(5)  # Wait before retrying
+            print("Sent custom status")
+            time.sleep(59)
+
+    threading.Thread(target=update_status, daemon=True).start()
 
 def onliner(token, status):
     global ws  # Declare ws as global within this function
@@ -95,20 +87,27 @@ def onliner(token, status):
     ws.run_forever()
 
 def run_onliner():
-    Thread(target=update_status, daemon=True).start()
+    while True:
+        onliner(token, status)
+        time.sleep(30)
 
 def reset_loop():
     global status
     status = "dnd"  # Change status to "dnd" temporarily
-    logging.info("Status changed to dnd")
+    print("Status changed to dnd")
     time.sleep(1)  # Wait for 1 second
     status = "online"  # Change status back to "online"
-    logging.info("Status changed to online")
+    print("Status changed to online")
+
+@app.route("/")
+def home():
+    # Home route does not affect status
+    return "Hello, World!"
 
 @app.route("/reset")
 def reset_status():
-    Thread(target=reset_loop, daemon=True).start()
-    logging.info("Reset flag set to True")
+    threading.Thread(target=reset_loop, daemon=True).start()
+    print("Reset flag set to True")
     return "Status reset"
 
 def run():
@@ -119,6 +118,5 @@ def keep_alive():
     server.start()
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     keep_alive()
     run_onliner()
