@@ -32,7 +32,6 @@ def on_close(ws, *args):
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
- # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -52,7 +51,6 @@ def on_open(ws):
     update_status()  # Set custom status when WebSocket connection opens
 
 def update_status():
-    global ws
     if ws is None or not ws.sock or not ws.sock.connected:
         return  # If WebSocket connection is not open, do nothing
 
@@ -77,7 +75,6 @@ def update_status():
     print("Sent custom status")
 
 def onliner(token, status):
-    global ws
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
