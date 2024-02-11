@@ -27,8 +27,7 @@ def on_error(ws, error):
 
 def on_close(ws, *args):
     print("WebSocket connection closed")
-    global ws
-    ws = None  # Reset WebSocket connection
+    # Do not set ws to None here
 
 def on_open(ws):
     global ws  # Declare ws as global within this function
