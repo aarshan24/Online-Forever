@@ -29,7 +29,6 @@ def on_close(ws, *args):
     print("WebSocket connection closed")
 
 def on_open(ws):
-    global ws  # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
