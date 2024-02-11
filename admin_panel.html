@@ -7,9 +7,9 @@
 </head>
 <body>
     <h2>Admin Panel</h2>
-    <form method="post">
+    <form action="/execute-command" method="post">
         <label for="command">Enter command:</label><br>
-        <input type="text" id="command" name="command"><br><br>
+        <input type="text" id="command" name="command" required><br><br>
         <input type="submit" value="Send">
     </form>
 </body>
