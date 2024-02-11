@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect, url_for
 from threading import Thread
 import os
 import json
@@ -32,6 +32,7 @@ def on_close(ws, *args):
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
+    # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -48,9 +49,10 @@ def on_open(ws):
     }
 
     ws.send(json.dumps(auth_payload))
-    update_status(ws)  # Set custom status when WebSocket connection opens
+    update_status()  # Set custom status when WebSocket connection opens
 
-def update_status(ws):
+def update_status():
+    global ws
     if ws is None or not ws.sock or not ws.sock.connected:
         return  # If WebSocket connection is not open, do nothing
 
@@ -75,6 +77,7 @@ def update_status(ws):
     print("Sent custom status")
 
 def onliner(token, status):
+    global ws
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
@@ -91,11 +94,14 @@ def reset_status():
     time.sleep(1)  # Wait for 1 second
     status = "online"  # Change status back to "online"
     print("Status changed to online")
-    update_status(ws)  # Reset custom status when status is reset
+    update_status()  # Reset custom status when status is reset
 
 @app.route("/")
-def keep_alive():
-    return "Service is running"
+@app.route("/reset")
+def reset_status_endpoint():
+    threading.Thread(target=reset_status, daemon=True).start()
+    print("Reset flag set to True")
+    return "Status reset"
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
@@ -103,10 +109,30 @@ def admin():
         user = request.form.get("user")
         password = request.form.get("password")
         if user == "godaarshan" and password == "godbot":
-            return render_template("admin_panel.html")
+            return redirect(url_for('execute_command'))
         else:
-            return render_template("login.html", message="Invalid credentials")
-    return render_template("login.html", message="")
+            return render_template("login.html", error="Invalid credentials")
+    return render_template("login.html", error=None)
+
+@app.route("/execute-command", methods=["GET", "POST"])
+def execute_command():
+    if request.method == "POST":
+        command = request.form.get("command")
+        if command.startswith("cstatus"):
+            _, new_custom_status = command.split(" ", 1)
+            global custom_status
+            custom_status = new_custom_status.strip()
+            update_status()
+        elif command == "dnd":
+            global status
+            status = "dnd"
+            update_status()
+        elif command == "online":
+            global status
+            status = "online"
+            update_status()
+        return "Command executed successfully"
+    return render_template("admin_panel.html")
 
 def run():
     app.run(host="0.0.0.0", port=8080)
