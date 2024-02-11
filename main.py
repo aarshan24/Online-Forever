@@ -62,6 +62,7 @@ def reset_loop():
     time.sleep(1)  # Wait for 1 second
     status = "online"  # Change status back to "online"
     print("Status changed to online")
+    ws.close()
 
 @app.route("/")
 def home():
