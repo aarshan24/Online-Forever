@@ -37,7 +37,7 @@ def on_close(ws, *args):
 
 @retry(stop=stop_after_delay(5), wait=wait_fixed(2))
 def on_open(ws):
-    global ws  # Declare ws as global within this function
+    # Declare ws as global within this function
     logging.info("WebSocket connection opened")
 
     auth_payload = {
