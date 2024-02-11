@@ -51,31 +51,31 @@ def on_open(ws):
 
     def update_status():
         while True:
-            if ws is None or not ws.sock or not ws.sock.connected:
+            if ws and ws.sock and ws.sock.connected:  # Check if WebSocket connection is open
+                # Send custom status
+                cstatus_payload = {
+                    "op": 3,
+                    "d": {
+                        "since": 0,
+                        "activities": [
+                            {
+                                "type": 4,
+                                "state": custom_status,
+                                "name": "Custom Status",
+                                "id": "custom",
+                            }
+                        ],
+                        "status": status,
+                        "afk": False,
+                    },
+                }
+                ws.send(json.dumps(cstatus_payload))
+                print("Sent custom status")
+            else:
                 print("WebSocket connection is closed. Reconnecting...")
                 onliner(token, status)
                 time.sleep(5)  # Wait before attempting to send status
-                continue
 
-            # Send custom status
-            cstatus_payload = {
-                "op": 3,
-                "d": {
-                    "since": 0,
-                    "activities": [
-                        {
-                            "type": 4,
-                            "state": custom_status,
-                            "name": "Custom Status",
-                            "id": "custom",
-                        }
-                    ],
-                    "status": status,
-                    "afk": False,
-                },
-            }
-            ws.send(json.dumps(cstatus_payload))
-            print("Sent custom status")
             time.sleep(59)
 
     threading.Thread(target=update_status, daemon=True).start()
@@ -108,6 +108,7 @@ def home():
 def reset_status():
     threading.Thread(target=reset_loop, daemon=True).start()
     print("Reset flag set to True")
+    print("Status reset requested")
     return "Status reset"
 
 def run():
