@@ -31,7 +31,6 @@ def on_error(ws, error):
 @retry(stop=stop_after_delay(5), wait=wait_fixed(2))
 def on_close(ws, *args):
     logging.warning("WebSocket connection closed")
-    global ws
     ws = None  # Reset WebSocket connection
     time.sleep(5)  # Wait before attempting to reconnect
     onliner(token, status)  # Reconnect WebSocket
