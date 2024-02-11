@@ -31,7 +31,7 @@ def on_close(ws, *args):
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
-    # Declare ws as global within this function
+    global ws  # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -48,36 +48,32 @@ def on_open(ws):
     }
 
     ws.send(json.dumps(auth_payload))
+    update_status()  # Set custom status when WebSocket connection opens
 
 def update_status():
     global ws
-    while True:
-        if ws is None or not ws.sock or not ws.sock.connected:
-            print("WebSocket connection is closed. Reconnecting...")
-            onliner(token, status)
-            time.sleep(5)  # Wait before attempting to send status
-            continue
+    if ws is None or not ws.sock or not ws.sock.connected:
+        return  # If WebSocket connection is not open, do nothing
 
-        # Send custom status only once
-        cstatus_payload = {
-            "op": 3,
-            "d": {
-                "since": 0,
-                "activities": [
-                    {
-                        "type": 4,
-                        "state": custom_status,
-                        "name": "Custom Status",
-                        "id": "custom",
-                    }
-                ],
-                "status": status,
-                "afk": False,
-            },
-        }
-        ws.send(json.dumps(cstatus_payload))
-        print("Sent custom status")
-        break  # Exit the loop after sending the custom status
+    # Send custom status only once
+    cstatus_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": custom_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
+    }
+    ws.send(json.dumps(cstatus_payload))
+    print("Sent custom status")
 
 def onliner(token, status):
     global ws
@@ -97,11 +93,7 @@ def reset_status():
     time.sleep(1)  # Wait for 1 second
     status = "online"  # Change status back to "online"
     print("Status changed to online")
-
-    # Reset custom status
-    global custom_status
-    custom_status = "discord.gg/permfruits"
-    print("Custom status reset")
+    update_status()  # Reset custom status when status is reset
 
 @app.route("/")
 @app.route("/reset")
