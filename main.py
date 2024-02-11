@@ -6,7 +6,7 @@ import time
 import threading
 import websocket
 
-app = Flask('')
+app = Flask(__name__, template_folder='.')
 
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
@@ -27,12 +27,11 @@ def on_error(ws, error):
 
 def on_close(ws, *args):
     print("WebSocket connection closed")
-    
     ws = None  # Reset WebSocket connection
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
-     # Declare ws as global within this function
+    global ws  # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -97,11 +96,8 @@ def reset_status():
     update_status()  # Reset custom status when status is reset
 
 @app.route("/")
-@app.route("/reset")
-def reset_status_endpoint():
-    threading.Thread(target=reset_status, daemon=True).start()
-    print("Reset flag set to True")
-    return "Status reset"
+def login():
+    return render_template("login.html")
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
