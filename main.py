@@ -1,26 +1,36 @@
-from flask import Flask
-from threading import Thread
 import os
+import sys
 import json
 import time
+import requests
 import threading
 import websocket
-
-app = Flask('')
+from keep_alive import keep_alive
 
 status = "online"  # online/dnd/idle
-custom_status = "discord.gg/permfruits"  # Custom status
-token = os.getenv('TOKEN')
-ws = None  # Global variable to hold WebSocket connection
 
+custom_status = "discord.gg/permfruits"  # Custom status
+alternate_status = "bro what"
+
+token = os.getenv('TOKEN')
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
 headers = {"Authorization": token, "Content-Type": "application/json"}
 
+validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
+if validate.status_code != 200:
+    print("[ERROR] Your token might be invalid. Please check it again.")
+    sys.exit()
+
+userinfo = validate.json()
+username = userinfo["username"]
+discriminator = userinfo["discriminator"]
+userid = userinfo["id"]
+
 def on_message(ws, message):
-    pass
+    print("Received:", message)
 
 def on_error(ws, error):
     print("Error:", error)
@@ -48,13 +58,7 @@ def on_open(ws):
 
     def update_status():
         while True:
-            if ws is None or not ws.sock or not ws.sock.connected:
-                print("WebSocket connection is closed. Reconnecting...")
-                onliner(token, status)
-                time.sleep(5)  # Wait before attempting to send status
-                continue
-
-            # Send custom status
+            # Send "bro what" status
             cstatus_payload = {
                 "op": 3,
                 "d": {
@@ -62,7 +66,7 @@ def on_open(ws):
                     "activities": [
                         {
                             "type": 4,
-                            "state": custom_status,
+                            "state": alternate_status,
                             "name": "Custom Status",
                             "id": "custom",
                         }
@@ -72,43 +76,39 @@ def on_open(ws):
                 },
             }
             ws.send(json.dumps(cstatus_payload))
-            print("Sent custom status")
+            time.sleep(1)
+
+            # Send "discord.gg/permfruits" status
+            cstatus_payload["d"]["activities"][0]["state"] = custom_status
+            ws.send(json.dumps(cstatus_payload))
             time.sleep(59)
 
     threading.Thread(target=update_status, daemon=True).start()
 
 def onliner(token, status):
-    global ws  # Declare ws as global within this function
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
 
 def run_onliner():
+    print(f"Logged in as {username}#{discriminator} ({userid}).")
     while True:
         onliner(token, status)
         time.sleep(30)
 
-def reset_loop():
-    global status
-    status = "dnd"  # Change status to "dnd" temporarily
-    print("Status changed to dnd")
-    time.sleep(1)  # Wait for 1 second
-    status = "online"  # Change status back to "online"
-    print("Status changed to online")
+def lock_file_exists():
+    lock_file_path = "/tmp/discord_status_lock"
+    return os.path.exists(lock_file_path)
 
-@app.route("/reset")
-def reset_status():
-    threading.Thread(target=reset_loop, daemon=True).start()
-    print("Reset flag set to True")
-    return "Status reset"
+def run_script():
+    if lock_file_exists():
+        print("Another instance of the script is already running. Exiting.")
+        return
+    try:
+        open("/tmp/discord_status_lock", 'a').close()  # Create lock file
+        keep_alive()
+        run_onliner()
+    finally:
+        os.remove("/tmp/discord_status_lock")  # Remove lock file
 
-def run():
-    app.run(host="0.0.0.0", port=8080)
-
-def keep_alive():
-    server = Thread(target=run)
-    server.start()
-
-if __name__ == "__main__":
-    keep_alive()
-    run_onliner()
+run_script()
