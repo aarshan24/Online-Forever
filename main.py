@@ -6,7 +6,7 @@ import time
 import threading
 import websocket
 
-app = Flask('')
+app = Flask(__name__, template_folder='.')
 
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
