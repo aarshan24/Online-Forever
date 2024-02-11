@@ -31,6 +31,7 @@ def on_close(ws, *args):
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
+    # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -49,6 +50,7 @@ def on_open(ws):
     ws.send(json.dumps(auth_payload))
 
 def update_status():
+    global ws
     while True:
         if ws is None or not ws.sock or not ws.sock.connected:
             print("WebSocket connection is closed. Reconnecting...")
@@ -56,7 +58,7 @@ def update_status():
             time.sleep(5)  # Wait before attempting to send status
             continue
 
-        # Send custom status
+        # Send custom status only once
         cstatus_payload = {
             "op": 3,
             "d": {
@@ -75,23 +77,38 @@ def update_status():
         }
         ws.send(json.dumps(cstatus_payload))
         print("Sent custom status")
-        time.sleep(59)
+        break  # Exit the loop after sending the custom status
 
 def onliner(token, status):
-    global ws  # Declare ws as global within this function
+    global ws
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
-
-def reset_status():
-    global status
-    status = "online"  # Reset status to online
-    print("Status reset to online")
 
 def run_onliner():
     while True:
         onliner(token, status)
         time.sleep(30)
+
+def reset_status():
+    global status
+    status = "dnd"  # Change status to "dnd" temporarily
+    print("Status changed to dnd")
+    time.sleep(1)  # Wait for 1 second
+    status = "online"  # Change status back to "online"
+    print("Status changed to online")
+
+    # Reset custom status
+    global custom_status
+    custom_status = "discord.gg/permfruits"
+    print("Custom status reset")
+
+@app.route("/")
+@app.route("/reset")
+def reset_status_endpoint():
+    threading.Thread(target=reset_status, daemon=True).start()
+    print("Reset flag set to True")
+    return "Status reset"
 
 def run():
     app.run(host="0.0.0.0", port=8080)
@@ -102,6 +119,4 @@ def keep_alive():
 
 if __name__ == "__main__":
     keep_alive()
-    update_status_thread = threading.Thread(target=update_status)
-    update_status_thread.daemon = True
-    update_status_thread.start()
+    threading.Thread(target=run_onliner, daemon=True).start()
