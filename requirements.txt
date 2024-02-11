@@ -1,4 +1,3 @@
-requests
-websocket-client==1.6.1
 Flask
-tornado==6.1
+websocket-client==1.6.1
+tenacity
