@@ -31,7 +31,7 @@ def on_close(ws, *args):
     ws = None  # Reset WebSocket connection
 
 def on_open(ws):
-    global ws
+    global ws  # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -49,12 +49,12 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-    def update_status(ws):
+    def update_status():
         while True:
             if ws is None or not ws.sock or not ws.sock.connected:
                 print("WebSocket connection is closed. Reconnecting...")
                 onliner(token, status)
-                time.sleep(5)
+                time.sleep(5)  # Wait before attempting to send status
                 continue
 
             # Send custom status
@@ -78,7 +78,7 @@ def on_open(ws):
             print("Sent custom status")
             time.sleep(59)
 
-    threading.Thread(target=update_status, args=(ws,), daemon=True).start()
+    threading.Thread(target=update_status, daemon=True).start()
 
 def onliner(token, status):
     global ws
@@ -95,22 +95,14 @@ def reset_loop():
     global status
     status = "dnd"  # Change status to "dnd" temporarily
     print("Status changed to dnd")
-    time.sleep(1)
+    time.sleep(1)  # Wait for 1 second
     status = "online"  # Change status back to "online"
     print("Status changed to online")
-
-def reset_websocket():
-    threading.Thread(target=onliner, args=(token, status), daemon=True).start()
-
-@app.route("/")
-def home():
-    return "Home"
 
 @app.route("/reset")
 def reset_status():
     threading.Thread(target=reset_loop, daemon=True).start()
     print("Reset flag set to True")
-    reset_websocket()
     return "Status reset"
 
 def run():
