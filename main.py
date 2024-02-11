@@ -27,11 +27,12 @@ def on_error(ws, error):
 
 def on_close(ws, *args):
     print("WebSocket connection closed")
+    
     ws = None  # Reset WebSocket connection
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
-     # Declare ws as global within this function
+      # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -96,8 +97,8 @@ def reset_status():
     update_status()  # Reset custom status when status is reset
 
 @app.route("/")
-def login():
-    return render_template("login.html")
+def keep_alive():
+    return "Service is running"
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
