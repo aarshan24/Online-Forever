@@ -117,7 +117,7 @@ def execute_command():
             status = "dnd"
             update_status()
         elif command == "online":
-            global status
+        
             status = "online"
             update_status()
         return "Command executed successfully"
