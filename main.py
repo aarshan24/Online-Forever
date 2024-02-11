@@ -8,7 +8,7 @@ import websocket
 
 app = Flask(__name__, template_folder='.')
 
-global status
+
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
 token = os.getenv('TOKEN')
