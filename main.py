@@ -103,17 +103,6 @@ def reset_status_endpoint():
     print("Reset flag set to True")
     return "Status reset"
 
-@app.route("/admin", methods=["GET", "POST"])
-def admin():
-    if request.method == "POST":
-        user = request.form.get("user")
-        password = request.form.get("password")
-        if user == "godaarshan" and password == "godbot":
-            return redirect(url_for('execute_command'))
-        else:
-            return render_template("login.html", error="Invalid credentials")
-    return render_template("login.html", error=None)
-
 @app.route("/execute-command", methods=["GET", "POST"])
 def execute_command():
     if request.method == "POST":
@@ -126,13 +115,13 @@ def execute_command():
         elif command == "dnd":
             global status
             status = "dnd"
-            update_status()
         elif command == "online":
             global status
             status = "online"
-            update_status()
+        update_status()
         return "Command executed successfully"
     return render_template("admin_panel.html")
+
 
 def run():
     app.run(host="0.0.0.0", port=8080)
