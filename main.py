@@ -1,45 +1,45 @@
+from flask import Flask
+from threading import Thread
 import os
-import sys
 import json
 import time
-import requests
-import threading
 import websocket
-from keep_alive import keep_alive
+import logging
+from tenacity import retry, stop_after_delay, wait_fixed
+
+app = Flask('')
 
 status = "online"  # online/dnd/idle
-
 custom_status = "discord.gg/permfruits"  # Custom status
-alternate_status = "bro what"
-
 token = os.getenv('TOKEN')
+ws = None  # Global variable to hold WebSocket connection
+
 if not token:
-    print("[ERROR] Please add a token inside Secrets.")
+    logging.error("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
 headers = {"Authorization": token, "Content-Type": "application/json"}
 
-validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
-if validate.status_code != 200:
-    print("[ERROR] Your token might be invalid. Please check it again.")
-    sys.exit()
-
-userinfo = validate.json()
-username = userinfo["username"]
-discriminator = userinfo["discriminator"]
-userid = userinfo["id"]
-
+@retry(stop=stop_after_delay(5), wait=wait_fixed(2))
 def on_message(ws, message):
-    print("Received:", message)
+    pass
 
+@retry(stop=stop_after_delay(5), wait=wait_fixed(2))
 def on_error(ws, error):
-    print("Error:", error)
+    logging.error("WebSocket error: %s", error)
 
+@retry(stop=stop_after_delay(5), wait=wait_fixed(2))
 def on_close(ws, *args):
-    print("WebSocket connection closed")
+    logging.warning("WebSocket connection closed")
+    global ws
+    ws = None  # Reset WebSocket connection
+    time.sleep(5)  # Wait before attempting to reconnect
+    onliner(token, status)  # Reconnect WebSocket
 
+@retry(stop=stop_after_delay(5), wait=wait_fixed(2))
 def on_open(ws):
-    print("WebSocket connection opened")
+    global ws  # Declare ws as global within this function
+    logging.info("WebSocket connection opened")
 
     auth_payload = {
         "op": 2,
@@ -56,9 +56,17 @@ def on_open(ws):
 
     ws.send(json.dumps(auth_payload))
 
-    def update_status():
-        while True:
-            # Send "bro what" status
+def update_status():
+    global ws  # Declare ws as global within this function
+    while True:
+        try:
+            if ws is None or not ws.sock or not ws.sock.connected:
+                logging.warning("WebSocket connection is closed. Reconnecting...")
+                onliner(token, status)
+                time.sleep(5)  # Wait before attempting to send status
+                continue
+
+            # Send custom status
             cstatus_payload = {
                 "op": 3,
                 "d": {
@@ -66,7 +74,7 @@ def on_open(ws):
                     "activities": [
                         {
                             "type": 4,
-                            "state": alternate_status,
+                            "state": custom_status,
                             "name": "Custom Status",
                             "id": "custom",
                         }
@@ -76,39 +84,42 @@ def on_open(ws):
                 },
             }
             ws.send(json.dumps(cstatus_payload))
-            time.sleep(1)
-
-            # Send "discord.gg/permfruits" status
-            cstatus_payload["d"]["activities"][0]["state"] = custom_status
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(59)
-
-    threading.Thread(target=update_status, daemon=True).start()
+            logging.info("Sent custom status")
+        except Exception as e:
+            logging.error("Error updating status: %s", e)
+            time.sleep(5)  # Wait before retrying
 
 def onliner(token, status):
+    global ws  # Declare ws as global within this function
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
 
 def run_onliner():
-    print(f"Logged in as {username}#{discriminator} ({userid}).")
-    while True:
-        onliner(token, status)
-        time.sleep(30)
+    Thread(target=update_status, daemon=True).start()
 
-def lock_file_exists():
-    lock_file_path = "/tmp/discord_status_lock"
-    return os.path.exists(lock_file_path)
+def reset_loop():
+    global status
+    status = "dnd"  # Change status to "dnd" temporarily
+    logging.info("Status changed to dnd")
+    time.sleep(1)  # Wait for 1 second
+    status = "online"  # Change status back to "online"
+    logging.info("Status changed to online")
 
-def run_script():
-    if lock_file_exists():
-        print("Another instance of the script is already running. Exiting.")
-        return
-    try:
-        open("/tmp/discord_status_lock", 'a').close()  # Create lock file
-        keep_alive()
-        run_onliner()
-    finally:
-        os.remove("/tmp/discord_status_lock")  # Remove lock file
+@app.route("/reset")
+def reset_status():
+    Thread(target=reset_loop, daemon=True).start()
+    logging.info("Reset flag set to True")
+    return "Status reset"
 
-run_script()
+def run():
+    app.run(host="0.0.0.0", port=8080)
+
+def keep_alive():
+    server = Thread(target=run)
+    server.start()
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    keep_alive()
+    run_onliner()
