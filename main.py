@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, render_template
 from threading import Thread
 import os
 import json
@@ -27,10 +27,12 @@ def on_error(ws, error):
 
 def on_close(ws, *args):
     print("WebSocket connection closed")
+    
     ws = None  # Reset WebSocket connection
     reset_status()  # Reset status when WebSocket connection closes
 
-def on_open(ws):  # Declare ws as global within this function
+def on_open(ws):
+     # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -100,6 +102,17 @@ def reset_status_endpoint():
     threading.Thread(target=reset_status, daemon=True).start()
     print("Reset flag set to True")
     return "Status reset"
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+    if request.method == "POST":
+        user = request.form.get("user")
+        password = request.form.get("password")
+        if user == "godaarshan" and password == "godbot":
+            return render_template("admin_panel.html")
+        else:
+            return "Invalid credentials"
+    return render_template("login.html")
 
 def run():
     app.run(host="0.0.0.0", port=8080)
