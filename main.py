@@ -27,6 +27,8 @@ def on_error(ws, error):
 
 def on_close(ws, *args):
     print("WebSocket connection closed")
+    ws = None  # Reset WebSocket connection
+    reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
     print("WebSocket connection opened")
@@ -45,54 +47,51 @@ def on_open(ws):
     }
 
     ws.send(json.dumps(auth_payload))
-    update_status()
 
 def update_status():
-    # Send "discord.gg/permfruits" status
-    cstatus_payload = {
-        "op": 3,
-        "d": {
-            "since": 0,
-            "activities": [
-                {
-                    "type": 4,
-                    "state": custom_status,
-                    "name": "Custom Status",
-                    "id": "custom",
-                }
-            ],
-            "status": status,
-            "afk": False,
-        },
-    }
-    ws.send(json.dumps(cstatus_payload))
-    print("Sent custom status")
+    while True:
+        if ws is None or not ws.sock or not ws.sock.connected:
+            print("WebSocket connection is closed. Reconnecting...")
+            onliner(token, status)
+            time.sleep(5)  # Wait before attempting to send status
+            continue
+
+        # Send custom status
+        cstatus_payload = {
+            "op": 3,
+            "d": {
+                "since": 0,
+                "activities": [
+                    {
+                        "type": 4,
+                        "state": custom_status,
+                        "name": "Custom Status",
+                        "id": "custom",
+                    }
+                ],
+                "status": status,
+                "afk": False,
+            },
+        }
+        ws.send(json.dumps(cstatus_payload))
+        print("Sent custom status")
+        time.sleep(59)
 
 def onliner(token, status):
-    global ws
+    global ws  # Declare ws as global within this function
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
+
+def reset_status():
+    global status
+    status = "online"  # Reset status to online
+    print("Status reset to online")
 
 def run_onliner():
     while True:
         onliner(token, status)
         time.sleep(30)
-
-def reset_loop():
-    global status
-    status = "dnd"  # Change status to "dnd" temporarily
-    print("Status changed to dnd")
-    time.sleep(1)  # Wait for 1 second
-    status = "online"  # Change status back to "online"
-    print("Status changed to online")
-
-@app.route("/")
-@app.route("/reset")
-def reset_status():
-    threading.Thread(target=reset_loop, daemon=True).start()
-    print("Reset flag set to True")
-    return "Status reset"
 
 def run():
     app.run(host="0.0.0.0", port=8080)
@@ -103,4 +102,6 @@ def keep_alive():
 
 if __name__ == "__main__":
     keep_alive()
-    run_onliner()
+    update_status_thread = threading.Thread(target=update_status)
+    update_status_thread.daemon = True
+    update_status_thread.start()
