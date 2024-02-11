@@ -45,6 +45,7 @@ def on_open(ws):
     }
 
     ws.send(json.dumps(auth_payload))
+    print("Sent initial status and custom status")
 
 def onliner(token, status):
     global ws  # Declare ws as global within this function
