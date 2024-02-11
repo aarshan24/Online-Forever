@@ -108,8 +108,26 @@ def admin():
         if user == "godaarshan" and password == "godbot":
             return render_template("admin_panel.html")
         else:
-            return "Invalid credentials"
-    return render_template("login.html")
+            return render_template("login.html", message="Invalid credentials")
+    return render_template("login.html", message="")
+
+@app.route("/execute-command", methods=["POST"])
+def execute_command():
+    command = request.form.get("command")
+    if command.startswith("cstatus"):
+        _, new_custom_status = command.split(" ", 1)
+        global custom_status
+        custom_status = new_custom_status.strip()
+        update_status()
+    elif command == "dnd":
+        global status
+        status = "dnd"
+        update_status()
+    elif command == "online":
+        global status
+        status = "online"
+        update_status()
+    return "Command executed successfully"
 
 def run():
     app.run(host="0.0.0.0", port=8080)
