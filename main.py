@@ -6,7 +6,7 @@ import time
 import threading
 import websocket
 import subprocess
-from keep_alive import keep_alive
+import psutil
 
 app = Flask(__name__, template_folder='.')
 
@@ -14,7 +14,7 @@ status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
 token = os.getenv('TOKEN')
 ws = None  # Global variable to hold WebSocket connection
-priority = "main"  # Default priority is main
+priority = "main"  # Default priority
 
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
@@ -35,7 +35,7 @@ def on_close(ws, *args):
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
-     # Declare ws as global within this function
+    # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -98,15 +98,10 @@ def reset_status():
     print("Status changed to online")
     update_status()  # Reset custom status when status is reset
 
-def set_priority(new_priority):
-    global priority
-    priority = new_priority
-
-def get_priority():
-    global priority
-    return priority
-
 @app.route("/")
+def home():
+    return "I am alive"
+
 @app.route("/reset")
 def reset_status_endpoint():
     threading.Thread(target=reset_status, daemon=True).start()
@@ -115,35 +110,36 @@ def reset_status_endpoint():
 
 @app.route("/execute-command", methods=["GET", "POST"])
 def execute_command():
+    global priority
     if request.method == "POST":
         command = request.form.get("command")
-        current_priority = get_priority()
-        if command.startswith("cstatus") and current_priority != "admin":
+        if command.startswith("cstatus"):
             _, new_custom_status = command.split(" ", 1)
-            global custom_status
             custom_status = new_custom_status.strip()
             update_status()
-        elif command == "dnd" and current_priority != "admin":
-            global status
+        elif command == "dnd":
             status = "dnd"
             update_status()
-        elif command == "online" and current_priority != "admin":
+        elif command == "online":
             status = "online"
             update_status()
-        elif command == "rollback" and current_priority != "admin":
-            set_priority("rollback")
+        elif command == "rollback":
             subprocess.Popen(["python3", "rollback_code.py"])
-        elif command == "exit rollback" and current_priority == "admin":
-            subprocess.run(["pkill", "-f", "rollback_code.py"])  # Terminate the rollback_code.py process
+            set_priority("rollback")
+        elif command == "exit rollback":
             set_priority("main")
+            # Kill the rollback subprocess if it exists
+            for proc in psutil.process_iter():
+                if "rollback_code.py" in proc.name():
+                    proc.kill()
         return "Command executed successfully"
-        time.sleep(5)
-        return render_template("admin_panel.html")
     return render_template("admin_panel.html")
 
-def run():
-    app.run(host="0.0.0.0", port=8080)
+def keep_alive():
+    while True:
+        time.sleep(60)  # Keep the process alive by sleeping
 
 if __name__ == "__main__":
-    keep_alive()
     threading.Thread(target=run_onliner, daemon=True).start()
+    threading.Thread(target=keep_alive, daemon=True).start()
+    app.run(host="0.0.0.0", port=8080)
