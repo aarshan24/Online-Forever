@@ -14,6 +14,7 @@ status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
 token = os.getenv('TOKEN')
 ws = None  # Global variable to hold WebSocket connection
+priority = "main"  # Default priority is main
 
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
@@ -29,12 +30,12 @@ def on_error(ws, error):
 
 def on_close(ws, *args):
     print("WebSocket connection closed")
-    global ws
+    
     ws = None  # Reset WebSocket connection
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
-    global ws  # Declare ws as global within this function
+     # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -97,6 +98,14 @@ def reset_status():
     print("Status changed to online")
     update_status()  # Reset custom status when status is reset
 
+def set_priority(new_priority):
+    global priority
+    priority = new_priority
+
+def get_priority():
+    global priority
+    return priority
+
 @app.route("/")
 @app.route("/reset")
 def reset_status_endpoint():
@@ -108,21 +117,28 @@ def reset_status_endpoint():
 def execute_command():
     if request.method == "POST":
         command = request.form.get("command")
-        if command.startswith("cstatus"):
+        current_priority = get_priority()
+        if command.startswith("cstatus") and current_priority != "admin":
             _, new_custom_status = command.split(" ", 1)
             global custom_status
             custom_status = new_custom_status.strip()
             update_status()
-        elif command == "dnd":
+        elif command == "dnd" and current_priority != "admin":
             global status
             status = "dnd"
             update_status()
-        elif command == "online":
+        elif command == "online" and current_priority != "admin":
             status = "online"
             update_status()
-        elif command == "rollback":
+        elif command == "rollback" and current_priority != "admin":
+            set_priority("rollback")
             subprocess.Popen(["python3", "rollback_code.py"])
+        elif command == "exit rollback" and current_priority == "admin":
+            subprocess.run(["pkill", "-f", "rollback_code.py"])  # Terminate the rollback_code.py process
+            set_priority("main")
         return "Command executed successfully"
+        time.sleep(5)
+        return render_template("admin_panel.html")
     return render_template("admin_panel.html")
 
 def run():
