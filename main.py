@@ -7,6 +7,8 @@ import threading
 import websocket
 import subprocess
 import psutil
+from utils import keep_alive
+
 
 app = Flask(__name__, template_folder='.')
 
@@ -137,9 +139,6 @@ def execute_command():
         return render_template("admin_panel.html")
     return render_template("admin_panel.html")
 
-def keep_alive():
-    while True:
-        time.sleep(60)  # Keep the process alive by sleeping
 
 def set_priority(new_priority):
     global priority
