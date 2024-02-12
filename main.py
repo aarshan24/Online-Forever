@@ -29,16 +29,14 @@ def on_error(ws, error):
     print("Error:", error)
 
 def on_close(ws, *args):
-    
+    global ws
     print("WebSocket connection closed")
     ws = None  # Reset WebSocket connection
     reset_status()  # Reset status when WebSocket connection closes
-  # Reset status when WebSocket connection closes
 
 def on_open(ws):
-      # Declare ws as global within this function
+    global ws
     print("WebSocket connection opened")
-
     auth_payload = {
         "op": 2,
         "d": {
@@ -51,13 +49,11 @@ def on_open(ws):
             "presence": {"status": status, "afk": False},
         }
     }
-
     ws.send(json.dumps(auth_payload))
     update_status()  # Set custom status when WebSocket connection opens
 
 def update_status():
-    global ws
-    global custom_status
+    global ws, custom_status, status
     if ws is None or not ws.sock or not ws.sock.connected:
         return  # If WebSocket connection is not open, do nothing
 
@@ -80,11 +76,6 @@ def update_status():
     }
     ws.send(json.dumps(cstatus_payload))
     print("Sent custom status")
-
-def onliner(token, status):
-    ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
-    ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
-    ws.run_forever()
 
 def run_onliner():
     while True:
@@ -112,9 +103,7 @@ def reset_status_endpoint():
 
 @app.route("/execute-command", methods=["GET", "POST"])
 def execute_command():
-    global priority
-    global custom_status
-    global status
+    global priority, custom_status, status
     if request.method == "POST":
         command = request.form.get("command")
         if command.startswith("cstatus"):
