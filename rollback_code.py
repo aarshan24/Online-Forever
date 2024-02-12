@@ -5,6 +5,7 @@ import time
 import requests
 import threading
 import websocket
+import signal  # Import the signal module
 from keep_alive import keep_alive
 
 status = "online"  # online/dnd/idle
@@ -29,12 +30,12 @@ discriminator = userinfo["discriminator"]
 userid = userinfo["id"]
 
 def on_message(ws, message):
-    pass
+    print("Received:", message)
 
 def on_error(ws, error):
     print("Error:", error)
 
-def on_close(ws, *args):
+def on_close(ws):
     print("WebSocket connection closed")
 
 def on_open(ws):
@@ -54,35 +55,32 @@ def on_open(ws):
     }
 
     ws.send(json.dumps(auth_payload))
+    update_status()  # Set custom status when WebSocket connection opens
 
-    def update_status():
-        while True:
-            # Send "bro what" status
-            cstatus_payload = {
-                "op": 3,
-                "d": {
-                    "since": 0,
-                    "activities": [
-                        {
-                            "type": 4,
-                            "state": alternate_status,
-                            "name": "Custom Status",
-                            "id": "custom",
-                        }
-                    ],
-                    "status": status,
-                    "afk": False,
-                },
-            }
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(1)
+def update_status():
+    global ws
+    if ws is None or not ws.sock or not ws.sock.connected:
+        return  # If WebSocket connection is not open, do nothing
 
-            # Send "discord.gg/permfruits" status
-            cstatus_payload["d"]["activities"][0]["state"] = custom_status
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(59)
-
-    threading.Thread(target=update_status, daemon=True).start()
+    # Send custom status only once
+    cstatus_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": alternate_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
+    }
+    ws.send(json.dumps(cstatus_payload))
+    print("Sent custom status")
 
 def onliner(token, status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
@@ -109,5 +107,12 @@ def run_script():
         run_onliner()
     finally:
         os.remove("/tmp/discord_status_lock")  # Remove lock file
+
+def handle_exit(signum, frame):  # Signal handler function
+    print("Received exit signal. Exiting gracefully...")
+    sys.exit(0)
+
+# Register the signal handler for termination signal (SIGTERM)
+signal.signal(signal.SIGTERM, handle_exit)
 
 run_script()
