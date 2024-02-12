@@ -119,15 +119,19 @@ def execute_command():
             _, new_custom_status = command.split(" ", 1)
             custom_status = new_custom_status.strip()
             update_status()
+            print(f"Set the status to: {custom_status}")
         elif command == "dnd":
             status = "dnd"
             update_status()
+            print("Status set to dnd")
         elif command == "online":
             status = "online"
             update_status()
+            print("Status set to online")
         elif command == "rollback":
             subprocess.Popen(["python3", "rollback_code.py"])
             set_priority("rollback")
+            print("Entering rollback..")
         elif command == "exit rollback":
             set_priority("main")
             # Kill the rollback subprocess if it exists
@@ -135,6 +139,7 @@ def execute_command():
                 if "rollback_code.py" in proc.name():
                     proc.kill()
         return "Command executed successfully"
+        print("Exitting rollback..")
         time.sleep(5)
         return render_template("admin_panel.html")
     return render_template("admin_panel.html")
