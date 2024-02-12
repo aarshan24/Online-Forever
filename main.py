@@ -141,6 +141,10 @@ def keep_alive():
     while True:
         time.sleep(60)  # Keep the process alive by sleeping
 
+def set_priority(new_priority):
+    global priority
+    priority = new_priority
+
 if __name__ == "__main__":
     threading.Thread(target=run_onliner, daemon=True).start()
     threading.Thread(target=keep_alive, daemon=True).start()
