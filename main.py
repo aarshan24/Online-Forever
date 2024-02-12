@@ -1,11 +1,12 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template
 from threading import Thread
 import os
 import json
 import time
 import threading
-import subprocess
 import websocket
+import subprocess
+from keep_alive import keep_alive
 
 app = Flask(__name__, template_folder='.')
 
@@ -13,9 +14,6 @@ status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
 token = os.getenv('TOKEN')
 ws = None  # Global variable to hold WebSocket connection
-
-# Lock file path for rollback_code.py
-rollback_lock_file = "/tmp/rollback_lock"
 
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
@@ -31,12 +29,12 @@ def on_error(ws, error):
 
 def on_close(ws, *args):
     print("WebSocket connection closed")
-    
+    global ws
     ws = None  # Reset WebSocket connection
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
-    # Declare ws as global within this function
+    global ws  # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -81,7 +79,6 @@ def update_status():
     print("Sent custom status")
 
 def onliner(token, status):
-    global ws
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
     ws = websocket.WebSocketApp(ws_url, on_open=on_open, on_message=on_message, on_error=on_error, on_close=on_close)
     ws.run_forever()
@@ -99,14 +96,6 @@ def reset_status():
     status = "online"  # Change status back to "online"
     print("Status changed to online")
     update_status()  # Reset custom status when status is reset
-
-def acquire_rollback_lock():
-    with open(rollback_lock_file, 'w') as f:
-        f.write("Locked")
-
-def release_rollback_lock():
-    if os.path.exists(rollback_lock_file):
-        os.remove(rollback_lock_file)
 
 @app.route("/")
 @app.route("/reset")
@@ -132,23 +121,12 @@ def execute_command():
             status = "online"
             update_status()
         elif command == "rollback":
-            print("Rollback initiated...")
-            acquire_rollback_lock()  # Acquire the lock before executing rollback_code.py
-            subprocess.Popen(["python", "rollback_code.py"])  # Run rollback_code.py
-            return "Rollback initiated"
-        elif command == "exit rollback":
-            print("Exiting rollback...")
-            os.system("pkill -f rollback_code.py")  # Terminate the rollback_code.py process
-            release_rollback_lock()  # Release the lock after rollback_code.py exits
-            return "Exiting rollback"
+            subprocess.Popen(["python3", "rollback_code.py"])
+        return "Command executed successfully"
     return render_template("admin_panel.html")
 
 def run():
     app.run(host="0.0.0.0", port=8080)
-
-def keep_alive():
-    server = Thread(target=run)
-    server.start()
 
 if __name__ == "__main__":
     keep_alive()
