@@ -29,13 +29,10 @@ def on_error(ws, error):
     print("Error:", error)
 
 def on_close(ws, *args):
-    global ws
     print("WebSocket connection closed")
-    ws = None  # Reset WebSocket connection
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
-    global ws
     print("WebSocket connection opened")
     auth_payload = {
         "op": 2,
@@ -50,10 +47,10 @@ def on_open(ws):
         }
     }
     ws.send(json.dumps(auth_payload))
-    update_status()  # Set custom status when WebSocket connection opens
+    update_status(ws)  # Set custom status when WebSocket connection opens
 
-def update_status():
-    global ws, custom_status, status
+def update_status(ws):
+    global custom_status, status
     if ws is None or not ws.sock or not ws.sock.connected:
         return  # If WebSocket connection is not open, do nothing
 
@@ -88,8 +85,6 @@ def reset_status():
     print("Status changed to dnd")
     time.sleep(1)  # Wait for 1 second
     status = "online"  # Change status back to "online"
-    print("Status changed to online")
-    update_status()  # Reset custom status when status is reset
 
 @app.route("/")
 def home():
@@ -109,15 +104,15 @@ def execute_command():
         if command.startswith("cstatus"):
             _, new_custom_status = command.split(" ", 1)
             custom_status = new_custom_status.strip()
-            update_status()
+            update_status(ws)
             print(f"Set the status to: {custom_status}")
         elif command == "dnd":
             status = "dnd"
-            update_status()
+            update_status(ws)
             print("Status set to dnd")
         elif command == "online":
             status = "online"
-            update_status()
+            update_status(ws)
             print("Status set to online")
         elif command == "rollback":
             subprocess.Popen(["python3", "rollback_code.py"])
