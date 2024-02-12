@@ -1,5 +1,3 @@
-from flask import Flask, request, render_template
-from threading import Thread
 import os
 import json
 import time
@@ -7,8 +5,8 @@ import threading
 import websocket
 import subprocess
 import psutil
+from flask import Flask, request, render_template
 from utils import keep_alive
-
 
 app = Flask(__name__, template_folder='.')
 
@@ -32,12 +30,12 @@ def on_error(ws, error):
 
 def on_close(ws, *args):
     print("WebSocket connection closed")
-    
+    global ws
     ws = None  # Reset WebSocket connection
     reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
-     # Declare ws as global within this function
+    global ws  # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -58,6 +56,7 @@ def on_open(ws):
 
 def update_status():
     global ws
+    global custom_status
     if ws is None or not ws.sock or not ws.sock.connected:
         return  # If WebSocket connection is not open, do nothing
 
@@ -113,6 +112,8 @@ def reset_status_endpoint():
 @app.route("/execute-command", methods=["GET", "POST"])
 def execute_command():
     global priority
+    global custom_status
+    global status
     if request.method == "POST":
         command = request.form.get("command")
         if command.startswith("cstatus"):
@@ -138,12 +139,9 @@ def execute_command():
             for proc in psutil.process_iter():
                 if "rollback_code.py" in proc.name():
                     proc.kill()
+            print("Exiting rollback..")
         return "Command executed successfully"
-        print("Exitting rollback..")
-        time.sleep(5)
-        return render_template("admin_panel.html")
     return render_template("admin_panel.html")
-
 
 def set_priority(new_priority):
     global priority
