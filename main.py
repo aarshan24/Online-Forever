@@ -5,6 +5,7 @@ import json
 import time
 import threading
 import subprocess
+import websocket
 
 app = Flask(__name__, template_folder='.')
 
