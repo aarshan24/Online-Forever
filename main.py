@@ -29,10 +29,11 @@ def on_error(ws, error):
     print("Error:", error)
 
 def on_close(ws, *args):
+    
     print("WebSocket connection closed")
-    global ws
     ws = None  # Reset WebSocket connection
     reset_status()  # Reset status when WebSocket connection closes
+  # Reset status when WebSocket connection closes
 
 def on_open(ws):
     global ws  # Declare ws as global within this function
