@@ -1,33 +1,26 @@
+from flask import Flask, request, render_template
+from threading import Thread
 import os
-import sys
 import json
 import time
-import requests
 import threading
 import websocket
-from keep_alive import keep_alive
+import subprocess
+import psutil
+
+app = Flask(__name__, template_folder='.')
 
 status = "online"  # online/dnd/idle
-
 custom_status = "discord.gg/permfruits"  # Custom status
-alternate_status = "bro what"
-
 token = os.getenv('TOKEN')
+ws = None  # Global variable to hold WebSocket connection
+priority = "main"  # Default priority
+
 if not token:
     print("[ERROR] Please add a token inside Secrets.")
     sys.exit()
 
 headers = {"Authorization": token, "Content-Type": "application/json"}
-
-validate = requests.get("https://canary.discordapp.com/api/v9/users/@me", headers=headers)
-if validate.status_code != 200:
-    print("[ERROR] Your token might be invalid. Please check it again.")
-    sys.exit()
-
-userinfo = validate.json()
-username = userinfo["username"]
-discriminator = userinfo["discriminator"]
-userid = userinfo["id"]
 
 def on_message(ws, message):
     pass
@@ -37,8 +30,12 @@ def on_error(ws, error):
 
 def on_close(ws, *args):
     print("WebSocket connection closed")
+    
+    ws = None  # Reset WebSocket connection
+    reset_status()  # Reset status when WebSocket connection closes
 
 def on_open(ws):
+     # Declare ws as global within this function
     print("WebSocket connection opened")
 
     auth_payload = {
@@ -55,35 +52,32 @@ def on_open(ws):
     }
 
     ws.send(json.dumps(auth_payload))
+    update_status()  # Set custom status when WebSocket connection opens
 
-    def update_status():
-        while True:
-            # Send "bro what" status
-            cstatus_payload = {
-                "op": 3,
-                "d": {
-                    "since": 0,
-                    "activities": [
-                        {
-                            "type": 4,
-                            "state": alternate_status,
-                            "name": "Custom Status",
-                            "id": "custom",
-                        }
-                    ],
-                    "status": status,
-                    "afk": False,
-                },
-            }
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(1)
+def update_status():
+    global ws
+    if ws is None or not ws.sock or not ws.sock.connected:
+        return  # If WebSocket connection is not open, do nothing
 
-            # Send "discord.gg/permfruits" status
-            cstatus_payload["d"]["activities"][0]["state"] = custom_status
-            ws.send(json.dumps(cstatus_payload))
-            time.sleep(59)
-
-    threading.Thread(target=update_status, daemon=True).start()
+    # Send custom status only once
+    cstatus_payload = {
+        "op": 3,
+        "d": {
+            "since": 0,
+            "activities": [
+                {
+                    "type": 4,
+                    "state": custom_status,
+                    "name": "Custom Status",
+                    "id": "custom",
+                }
+            ],
+            "status": status,
+            "afk": False,
+        },
+    }
+    ws.send(json.dumps(cstatus_payload))
+    print("Sent custom status")
 
 def onliner(token, status):
     ws_url = "wss://gateway.discord.gg/?v=9&encoding=json"
@@ -91,24 +85,63 @@ def onliner(token, status):
     ws.run_forever()
 
 def run_onliner():
-    print(f"Logged in as {username}#{discriminator} ({userid}).")
     while True:
         onliner(token, status)
         time.sleep(30)
 
-def lock_file_exists():
-    lock_file_path = "/tmp/discord_status_lock"
-    return os.path.exists(lock_file_path)
+def reset_status():
+    global status
+    status = "dnd"  # Change status to "dnd" temporarily
+    print("Status changed to dnd")
+    time.sleep(1)  # Wait for 1 second
+    status = "online"  # Change status back to "online"
+    print("Status changed to online")
+    update_status()  # Reset custom status when status is reset
 
-def run_script():
-    if lock_file_exists():
-        print("Another instance of the script is already running. Exiting.")
-        return
-    try:
-        open("/tmp/discord_status_lock", 'a').close()  # Create lock file
-        keep_alive()
-        run_onliner()
-    finally:
-        os.remove("/tmp/discord_status_lock")  # Remove lock file
+@app.route("/")
+def home():
+    return "I am alive"
 
-run_script()
+@app.route("/reset")
+def reset_status_endpoint():
+    threading.Thread(target=reset_status, daemon=True).start()
+    print("Reset flag set to True")
+    return "Status reset"
+
+@app.route("/execute-command", methods=["GET", "POST"])
+def execute_command():
+    global priority
+    if request.method == "POST":
+        command = request.form.get("command")
+        if command.startswith("cstatus"):
+            _, new_custom_status = command.split(" ", 1)
+            custom_status = new_custom_status.strip()
+            update_status()
+        elif command == "dnd":
+            status = "dnd"
+            update_status()
+        elif command == "online":
+            status = "online"
+            update_status()
+        elif command == "rollback":
+            subprocess.Popen(["python3", "rollback_code.py"])
+            set_priority("rollback")
+        elif command == "exit rollback":
+            set_priority("main")
+            # Kill the rollback subprocess if it exists
+            for proc in psutil.process_iter():
+                if "rollback_code.py" in proc.name():
+                    proc.kill()
+        return "Command executed successfully"
+        time.sleep(5)
+        return render_template("admin_panel.html")
+    return render_template("admin_panel.html")
+
+def keep_alive():
+    while True:
+        time.sleep(60)  # Keep the process alive by sleeping
+
+if __name__ == "__main__":
+    threading.Thread(target=run_onliner, daemon=True).start()
+    threading.Thread(target=keep_alive, daemon=True).start()
+    app.run(host="0.0.0.0", port=8080)
