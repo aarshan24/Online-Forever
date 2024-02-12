@@ -5,6 +5,8 @@ import time
 import requests
 import threading
 import websocket
+from utils import keep_alive
+
 
 status = "online"  # online/dnd/idle
 custom_status = "discord.gg/permfruits"  # Custom status
